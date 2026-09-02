@@ -15,10 +15,24 @@ a `kind = "git"` / `kind = "path"` source at it, then enable the plugins by id.
 ## Development
 
 Each plugin is a directory with a `plugin.toml`, one or more `*.luau` entry
-files, and `translations/`. Validate one offline with:
+files, and `translations/`.
 
-```sh
-noctalia plugins lint <plugin-dir>
+This repo is a flake. `nix develop` (or direnv) gives you `noctalia`,
+`luau-lsp`, `stylua`, and `taplo`, installs the pre-commit hook, and drops
+gitignored `noctalia.d.luau` type stubs into each plugin dir for editor
+completion.
+
+- `nix flake check` lints every plugin (`noctalia plugins lint`) and checks
+  formatting. CI runs exactly this.
+- `nix fmt` formats (stylua, taplo, nixfmt, keep-sorted).
+- Lint one plugin directly: `noctalia plugins lint <plugin-dir>`.
+
+### Consuming from a NixOS flake
+
+```nix
+inputs.noctalia-plugins.url = "github:jechton/noctalia-plugins";
 ```
 
-CI runs that on every plugin on push and PR.
+then point a `kind = "path"` Noctalia plugin source at
+`toString inputs.noctalia-plugins`. Iterate against the working tree without
+committing using `--override-input noctalia-plugins /path/to/this/repo`.

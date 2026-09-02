@@ -1,3 +1,7 @@
-# Editor type definitions, fetched per-plugin from noctalia's official-plugins
-# repo for luau-lsp. Not checked in.
+# Editor type definitions, dropped into each plugin dir by the devshell for
+# luau-lsp. Not checked in.
 noctalia.d.luau
+
+/.direnv/
+/result
+/.pre-commit-config.yaml

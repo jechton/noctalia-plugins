@@ -3,14 +3,11 @@ name: Lint plugins
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'LICENSE'
   pull_request:
   workflow_dispatch:
 
 jobs:
-  lint:
+  check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,13 +18,4 @@ jobs:
             extra-substituters = https://noctalia.cachix.org
             extra-trusted-public-keys = noctalia.cachix.org-1:pCOR47nnMEo5thcxNDtzWpOxNFQsBRglJzxWPp3dkU4=
 
-      - name: Lint every plugin
-        run: |
-          status=0
-          for dir in */; do
-            [ -f "$dir/plugin.toml" ] || continue
-            echo "::group::${dir%/}"
-            nix run github:noctalia-dev/noctalia-shell -- plugins lint "$dir" || status=1
-            echo "::endgroup::"
-          done
-          exit $status
+      - run: nix flake check --print-build-logs
