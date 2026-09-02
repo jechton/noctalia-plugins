@@ -6,8 +6,14 @@
 --
 -- A Jinja loop that emits one line per item (with `{% %}` blocks leaving blank
 -- lines between) lands as one grid cell per item for free; see example.jinja.
+--
+-- Clicking the widget opens the HA instance (base URL + dashboard_path) in the
+-- browser, same as the bar widget.
 
 local common = require("./common.luau")
+local ha = require("./ha.luau")
+
+local DASHBOARD_PATH = noctalia.string.trim(noctalia.getConfig("dashboard_path") or "")
 
 local JUSTIFY = { left = "start", center = "center", right = "end" }
 
@@ -115,7 +121,20 @@ local function render()
     })
   end
 
-  desktopWidget.render(ui.column({ gap = rowGap, align = "start" }, children))
+  desktopWidget.render(ui.column({
+    gap = rowGap,
+    align = "start",
+    onClick = "openDashboard",
+  }, children))
+end
+
+-- Open the HA instance (plus dashboard_path) in the browser, matching the bar
+-- widget's click.
+function openDashboard()
+  local cfg = ha.config()
+  if cfg.base ~= "" then
+    noctalia.runAsync({ "xdg-open", cfg.base .. DASHBOARD_PATH })
+  end
 end
 
 local function refresh()

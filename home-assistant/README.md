@@ -62,7 +62,7 @@ secret, or any path outside version control).
 | --- | --- | --- | --- |
 | `template_file` | `file` | `""` | Path to the Jinja template to render (required). See `example.jinja`. |
 | `poll_seconds` | `int` | `30` | Re-render interval. |
-| `dashboard_path` | `string` | `""` | Bar widget only: appended to the URL on click. |
+| `dashboard_path` | `string` | `""` | Appended to the HA URL opened on click (bar and desktop widgets). |
 | `font_family` | `string` | `""` | Bar widget only: override the bar font. |
 | `title` | `string` | `""` | Desktop widget only: optional heading. |
 | `columns` | `int` | `1` | Desktop widget only: items per row (1 = list, item-count = single row). |
