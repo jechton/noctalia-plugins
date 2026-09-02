@@ -34,6 +34,8 @@ Add the **Phone Media** widget to a bar section. Optionally also add the
 - **Bar widget** left-click opens the now-playing popup; right-click is
   play/pause; back/forward are previous/next; scroll is volume.
 - **Lyrics bar widget** left-click opens the full-lyrics popup.
+- In the full-lyrics popup, synced lyrics follow playback automatically and
+  clicking a line seeks the player to it.
 
 Open the popups manually with:
 

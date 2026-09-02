@@ -5,8 +5,9 @@
 -- media, then any player with media), fetches lyrics for it via the shared
 -- lrclib lookup in lyrics.luau, and renders every line in a scrollable list
 -- with the current one highlighted. Synced lyrics render as a fixed window
--- centred on the current line, so the view follows playback on its own;
--- unsynced lyrics show every line in a hand-scrolled list.
+-- centred on the current line, so the view follows playback on its own, and
+-- clicking a line seeks playback to it; unsynced lyrics show every line in a
+-- hand-scrolled list.
 
 local lyrics = require("./lyrics.luau")
 
@@ -87,6 +88,21 @@ local function pick(rows)
     end
   end
   return kdePlaying or playing or kdeMedia or anyMedia
+end
+
+-- ── seeking ──────────────────────────────────────────────────────────────────
+
+-- Click a synced line to jump playback to it. The line is highlighted once
+-- position >= timeMs - offset (see activeLineIndex callers), so seek there.
+local function seekToLineMs(timeMs)
+  if current == nil or timeMs < 0 then
+    return
+  end
+  local seconds = math.max(0, (timeMs - LYRICS_OFFSET_MS) / 1000)
+  noctalia.runAsync({ "playerctl", "--player=" .. current.name, "position", tostring(seconds) })
+  -- optimistic local update so the highlight moves before the next poll
+  positionUs, positionAtMs = math.floor(seconds * 1000000), noctalia.nowMs()
+  render()
 end
 
 -- ── lyrics fetch ─────────────────────────────────────────────────────────────
@@ -259,12 +275,20 @@ function render()
     local rendered = {}
     for i = first, last do
       local isCurrent = i == activeIndex
-      rendered[#rendered + 1] = ui.label({
-        text = lyricsLines[i].text,
-        fontSize = isCurrent and CURRENT_LINE_FONT_SIZE or OTHER_LINE_FONT_SIZE,
-        fontWeight = isCurrent and "bold" or "normal",
-        color = isCurrent and "primary" or "on_surface_variant",
-        textAlign = TEXT_ALIGN,
+      local timeMs = lyricsLines[i].timeMs
+      rendered[#rendered + 1] = ui.box({
+        align = "stretch",
+        onClick = function()
+          seekToLineMs(timeMs)
+        end,
+      }, {
+        ui.label({
+          text = lyricsLines[i].text,
+          fontSize = isCurrent and CURRENT_LINE_FONT_SIZE or OTHER_LINE_FONT_SIZE,
+          fontWeight = isCurrent and "bold" or "normal",
+          color = isCurrent and "primary" or "on_surface_variant",
+          textAlign = TEXT_ALIGN,
+        }),
       })
     end
     body[#body + 1] = ui.column({ flexGrow = 1, justify = "center", gap = 8, align = "stretch" }, rendered)
