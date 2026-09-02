@@ -129,6 +129,10 @@
       "label": "Show track info",
       "description": "Show the track title and artist above the lyrics."
     },
+    "lyrics_panel_visible_lines": {
+      "label": "Visible lines",
+      "description": "How many synced lyric lines to show at once, centered on the current line."
+    },
     "lyrics_panel_text_align": {
       "label": "Text alignment",
       "description": "How lyric lines are aligned.",

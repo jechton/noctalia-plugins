@@ -4,8 +4,9 @@
 -- Connect player wins, then any playing player, then a KDE Connect player with
 -- media, then any player with media), fetches lyrics for it via the shared
 -- lrclib lookup in lyrics.luau, and renders every line in a scrollable list
--- with the current one highlighted. The panel UI has no scroll-to-line
--- primitive, so the list does not auto-follow playback; scroll it by hand.
+-- with the current one highlighted. Synced lyrics render as a fixed window
+-- centred on the current line, so the view follows playback on its own;
+-- unsynced lyrics show every line in a hand-scrolled list.
 
 local lyrics = require("./lyrics.luau")
 
@@ -14,6 +15,11 @@ local lyrics = require("./lyrics.luau")
 local SHOW_TRACK_INFO = noctalia.getConfig("show_track_info") ~= false
 local TEXT_ALIGN = noctalia.getConfig("text_align") or "center"
 local LYRICS_OFFSET_MS = tonumber(noctalia.getConfig("lyrics_offset_ms")) or 0
+-- Synced lyrics render as a fixed window centred on the current line (a
+-- "karaoke" view that follows playback), since the panel has no
+-- scroll-to-line primitive. Unsynced lyrics still show every line in a
+-- hand-scrolled list.
+local VISIBLE_LINES = math.max(3, math.floor(tonumber(noctalia.getConfig("visible_lines")) or 9))
 
 local CURRENT_LINE_FONT_SIZE = 18
 local OTHER_LINE_FONT_SIZE = 15
@@ -240,22 +246,36 @@ function render()
     body[#body + 1] = emptyState("clock", noctalia.tr("ui.lyrics_loading"))
   elseif lyricsLines == nil then
     body[#body + 1] = emptyState("music-off", noctalia.tr("ui.lyrics_not_found"))
-  else
-    -- Every line, scrollable. For synced lyrics the line whose timestamp has
-    -- most recently passed is highlighted; plain lyrics report timeMs -1, so
-    -- activeLineIndex returns nil and nothing is highlighted.
-    local activeIndex = nil
-    if lyricsSource == "synced" then
-      activeIndex = lyrics.activeLineIndex(lyricsLines, math.floor(livePositionUs() / 1000) + LYRICS_OFFSET_MS)
-    end
+  elseif lyricsSource == "synced" then
+    -- Karaoke window: VISIBLE_LINES lines centred on the current one, kept full
+    -- near the start and end of the song so the view height doesn't jump.
+    local activeIndex = lyrics.activeLineIndex(lyricsLines, math.floor(livePositionUs() / 1000) + LYRICS_OFFSET_MS)
+      or 0
+    local total = #lyricsLines
+    local first = math.max(1, activeIndex - math.floor(VISIBLE_LINES / 2))
+    first = math.min(first, math.max(1, total - VISIBLE_LINES + 1))
+    local last = math.min(total, first + VISIBLE_LINES - 1)
+
     local rendered = {}
-    for i, line in ipairs(lyricsLines) do
+    for i = first, last do
       local isCurrent = i == activeIndex
       rendered[#rendered + 1] = ui.label({
-        text = line.text,
+        text = lyricsLines[i].text,
         fontSize = isCurrent and CURRENT_LINE_FONT_SIZE or OTHER_LINE_FONT_SIZE,
         fontWeight = isCurrent and "bold" or "normal",
         color = isCurrent and "primary" or "on_surface_variant",
+        textAlign = TEXT_ALIGN,
+      })
+    end
+    body[#body + 1] = ui.column({ flexGrow = 1, justify = "center", gap = 8, align = "stretch" }, rendered)
+  else
+    -- Unsynced: no current line, so show every line in a hand-scrolled list.
+    local rendered = {}
+    for _, line in ipairs(lyricsLines) do
+      rendered[#rendered + 1] = ui.label({
+        text = line.text,
+        fontSize = OTHER_LINE_FONT_SIZE,
+        color = "on_surface_variant",
         textAlign = TEXT_ALIGN,
       })
     end

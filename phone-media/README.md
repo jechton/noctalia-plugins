@@ -63,7 +63,8 @@ Each widget and panel carries its own knobs, grouped in Settings:
   album name, source label, progress bar, time labels, playback controls,
   lyrics section, player switcher).
 - **`lyrics_bar`**: `hide_when_no_lyrics`, `show_current_line`, `max_length`.
-- **`lyrics` panel**: `show_track_info`, `text_align`.
+- **`lyrics` panel**: `show_track_info`, `text_align`, `visible_lines`
+  (synced lyrics render as a fixed window that follows playback).
 
 ## Notes
 
