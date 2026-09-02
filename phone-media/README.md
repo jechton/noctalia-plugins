@@ -44,8 +44,15 @@ noctalia msg panel-toggle jechton/phone-media:lyrics
 
 ## Settings
 
-Plugin-level: `lyrics_offset_ms` shifts synced lyrics earlier (negative) or
-later (positive) everywhere they show.
+Plugin-level:
+
+- `lyrics_offset_ms` shifts synced lyrics earlier (negative) or later
+  (positive) everywhere they show.
+- `use_cache` (default on) writes fetched lyrics to the plugin data dir as
+  `.lrc`, so each track is looked up once across restarts and all three
+  widgets/panels.
+- `local_lyrics_dir` is an optional folder of your own `Artist - Title.lrc`
+  (or `Title.lrc`) files, checked before the cache and the network.
 
 Each widget and panel carries its own knobs, grouped in Settings:
 

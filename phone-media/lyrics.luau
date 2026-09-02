@@ -181,22 +181,108 @@ local function hasTimestamp(lines)
   return false
 end
 
-local function extractLines(entry)
-  if type(entry) ~= "table" then
+-- raw LRC/plain text -> (lines, "synced"|"plain") or nil.
+local function linesFromRaw(raw)
+  local lines = M.parseLRC(raw)
+  if lines == nil then
     return nil, nil
   end
-  local synced = M.parseLRC(entry.syncedLyrics)
-  if synced ~= nil and hasTimestamp(synced) then
-    return synced, "synced"
+  return lines, hasTimestamp(lines) and "synced" or "plain"
+end
+
+-- Returns lines, source, and the raw text they came from (for the disk cache).
+local function extractLines(entry)
+  if type(entry) ~= "table" then
+    return nil, nil, nil
   end
-  local plain = M.parseLRC(entry.plainLyrics)
+  local lines, source = linesFromRaw(entry.syncedLyrics)
+  if lines ~= nil and source == "synced" then
+    return lines, source, entry.syncedLyrics
+  end
+  local plain, plainSource = linesFromRaw(entry.plainLyrics)
   if plain ~= nil then
-    return plain, "plain"
+    return plain, plainSource, entry.plainLyrics
   end
-  if synced ~= nil then
-    return synced, "plain"
+  if lines ~= nil then
+    return lines, source, entry.syncedLyrics
   end
-  return nil, nil
+  return nil, nil, nil
+end
+
+-- ── disk cache + user-provided lyrics ────────────────────────────────────────
+--
+-- The in-memory cache above is per-VM and lost on reload; this on-disk cache in
+-- pluginDataDir() is shared by all three consumer VMs and survives restarts, so
+-- a track only hits the network once. `local_lyrics_dir` lets the user drop in
+-- their own `.lrc` files, which win over anything fetched.
+
+local function sanitizeName(s)
+  return (noctalia.string.trim(s or ""):gsub("[/\\%c]", "_"))
+end
+
+local function cacheEnabled()
+  return noctalia.getConfig("use_cache") ~= false
+end
+
+local function diskCacheFile(track)
+  local dir = noctalia.pluginDataDir()
+  local title = sanitizeName(track.title)
+  if dir == nil or title == "" then
+    return nil
+  end
+  local artist = sanitizeName(track.artist)
+  local name = artist ~= "" and (artist .. " - " .. title) or title
+  -- lazy: keyed on artist+title only, not album/duration; a rare remaster
+  -- collision just needs one manual refetch. Ceiling: fold in a trackKey hash.
+  return dir .. "/lyrics/" .. name .. ".lrc"
+end
+
+local function readNonEmptyFile(path)
+  if path == nil then
+    return nil
+  end
+  local raw = noctalia.readFile(path)
+  if raw ~= nil and noctalia.string.trim(raw) ~= "" then
+    return raw
+  end
+  return nil
+end
+
+local function readDiskCache(track)
+  if not cacheEnabled() then
+    return nil
+  end
+  return readNonEmptyFile(diskCacheFile(track))
+end
+
+local function writeDiskCache(track, raw)
+  if not cacheEnabled() or raw == nil or noctalia.string.trim(raw) == "" then
+    return
+  end
+  local path = diskCacheFile(track)
+  local dir = noctalia.pluginDataDir()
+  if path == nil or dir == nil then
+    return
+  end
+  noctalia.mkdirAll(dir .. "/lyrics")
+  noctalia.writeFile(path, raw)
+end
+
+local function readLocalLyrics(track)
+  local dirCfg = noctalia.string.trim(noctalia.getConfig("local_lyrics_dir") or "")
+  local title = sanitizeName(track.title)
+  if dirCfg == "" or title == "" then
+    return nil
+  end
+  local dir = noctalia.expandPath(dirCfg)
+  local artist = sanitizeName(track.artist)
+  if artist ~= "" then
+    local raw = readNonEmptyFile(dir .. "/" .. artist .. " - " .. title .. ".lrc")
+    if raw ~= nil then
+      return raw
+    end
+  end
+  return readNonEmptyFile(dir .. "/" .. title .. ".lrc")
 end
 
 local function statusOk(res)
@@ -241,8 +327,8 @@ local function searchFallback(track, callback)
       callback(nil, nil)
       return
     end
-    local lines, source = extractLines(bestByDuration(data, durationSeconds))
-    callback(lines, source)
+    local lines, source, raw = extractLines(bestByDuration(data, durationSeconds))
+    callback(lines, source, raw)
   end)
   if not started then
     callback(nil, nil)
@@ -250,7 +336,9 @@ local function searchFallback(track, callback)
 end
 
 -- track = { title, artist, album, lengthUs }. callback(lines_or_nil, source)
--- where source is "synced", "plain", or nil when nothing was found.
+-- where source is "synced", "plain", or nil when nothing was found. Resolution
+-- order: in-memory cache, user's local_lyrics_dir, on-disk cache, lrclib /get,
+-- lrclib /search.
 function M.fetchLyrics(track, callback)
   if track == nil or track.title == nil or track.title == "" then
     callback(nil, nil)
@@ -264,9 +352,34 @@ function M.fetchLyrics(track, callback)
     return
   end
 
-  local function finish(lines, source)
+  local function deliver(lines, source)
     cachePut(cacheKey, lines, source)
     callback(lines, source)
+  end
+
+  local function finish(lines, source, raw)
+    if lines ~= nil and raw ~= nil then
+      writeDiskCache(track, raw)
+    end
+    deliver(lines, source)
+  end
+
+  local localRaw = readLocalLyrics(track)
+  if localRaw ~= nil then
+    local lines, source = linesFromRaw(localRaw)
+    if lines ~= nil then
+      deliver(lines, source)
+      return
+    end
+  end
+
+  local diskRaw = readDiskCache(track)
+  if diskRaw ~= nil then
+    local lines, source = linesFromRaw(diskRaw)
+    if lines ~= nil then
+      deliver(lines, source)
+      return
+    end
   end
 
   local query = "track_name=" .. noctalia.string.urlEncode(track.title) .. "&artist_name=" .. noctalia.string.urlEncode(
@@ -283,9 +396,9 @@ function M.fetchLyrics(track, callback)
   local started = noctalia.http({ url = BASE_URL .. "/get?" .. query, headers = HEADERS }, function(res)
     if statusOk(res) and res.body ~= nil and res.body ~= "" then
       local data = noctalia.json.decode(res.body)
-      local lines, source = extractLines(data)
+      local lines, source, raw = extractLines(data)
       if lines ~= nil then
-        finish(lines, source)
+        finish(lines, source, raw)
         return
       end
     end

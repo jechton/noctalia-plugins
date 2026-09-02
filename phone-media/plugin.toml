@@ -26,6 +26,24 @@ min = -5000
 max = 5000
 step = 100
 
+# Fetched lyrics are written to pluginDataDir()/lyrics as .lrc so a track is
+# only looked up once, across restarts and across the three widgets/panels.
+[[setting]]
+key = "use_cache"
+type = "bool"
+label_key = "settings.use_cache.label"
+description_key = "settings.use_cache.description"
+default = true
+
+# A directory of the user's own "<Artist> - <Title>.lrc" (or "<Title>.lrc")
+# files, checked before the cache and the network. Empty disables it.
+[[setting]]
+key = "local_lyrics_dir"
+type = "string"
+label_key = "settings.local_lyrics_dir.label"
+description_key = "settings.local_lyrics_dir.description"
+default = ""
+
 [[widget]]
 id = "bar"
 entry = "bar.luau"

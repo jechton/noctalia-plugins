@@ -6,6 +6,14 @@
       "label": "Lyrics sync offset (ms)",
       "description": "Shift synced lyrics earlier (negative) or later (positive) to match playback. Applies everywhere lyrics show."
     },
+    "use_cache": {
+      "label": "Cache lyrics on disk",
+      "description": "Save fetched lyrics so each track is only looked up once, across restarts."
+    },
+    "local_lyrics_dir": {
+      "label": "Local lyrics folder",
+      "description": "Folder of your own \"Artist - Title.lrc\" files, used before the cache and the network. Leave empty to disable."
+    },
 
     "hide_when_no_media": {
       "label": "Hide when nothing is playing",
