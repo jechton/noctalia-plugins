@@ -57,8 +57,8 @@ local function render()
 
   barWidget.setVisible(true)
   local elapsed = kimai.hhmm(kimai.elapsedSeconds(running))
-  local project = nameOf(projects, running.project)
-  local activity = nameOf(activities, running.activity)
+  local project = nameOf(projects, kimai.entityId(running.project))
+  local activity = nameOf(activities, kimai.entityId(running.activity))
 
   local text = elapsed
   if SHOW_PROJECT and project ~= nil then

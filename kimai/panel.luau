@@ -102,8 +102,8 @@ end
 local function seedDraftFromRunning()
   local begun = kimai.beginSeconds(running)
   draft = {
-    projectId = running.project,
-    activityId = running.activity,
+    projectId = kimai.entityId(running.project),
+    activityId = kimai.entityId(running.activity),
     description = (type(running.description) == "string" and running.description) or "",
     beginTime = begun and kimai.formatClock(begun) or "",
   }

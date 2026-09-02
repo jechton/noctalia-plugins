@@ -305,6 +305,16 @@ function M.hhmm(totalSeconds)
   return string.format("%d:%02d", math.floor(totalSeconds / 3600), math.floor(totalSeconds / 60) % 60)
 end
 
+-- A timesheet's project / activity reference. The plain collections return a
+-- bare id, but /api/timesheets/active and /api/timesheets/{id} expand it to the
+-- full entity object; this yields the id either way. nil stays nil.
+function M.entityId(ref)
+  if type(ref) == "table" then
+    return ref.id
+  end
+  return ref
+end
+
 -- { id = entity } index for a project/activity list response.
 function M.indexById(list)
   local byId = {}
