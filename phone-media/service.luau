@@ -61,11 +61,19 @@ local now = {
   lengthUs = 0,
   positionUs = 0,
   positionAtMs = 0,
+  -- observed playback rate: `playerctl position` is ground truth each poll, and
+  -- between polls consumers extrapolate positionUs at this rate. Stays 1.0 for
+  -- normal playback; tracks a podcast/audiobook played at 1.5x/2x/0.5x so the
+  -- progress bar and lyric highlight don't race ahead and snap back each poll.
+  rate = 1.0,
   trackKey = "",
   players = {},
   pinned = nil,
   rev = 0,
 }
+-- false until two clean position samples are in (fresh after a seek, track
+-- change, or a pause), so a stale sample can't produce a bogus rate.
+local rateBaselineValid = false
 
 local lyricsState = { trackKey = "", status = "idle", source = nil, lines = nil }
 local lyricsFetchToken = 0
@@ -228,8 +236,26 @@ local function refreshPosition()
     if seconds == nil then
       return
     end
-    now.positionUs = math.floor(seconds * 1000000)
-    now.positionAtMs = noctalia.nowMs()
+    local sampledUs = math.floor(seconds * 1000000)
+    local sampledAtMs = noctalia.nowMs()
+
+    if now.status ~= "Playing" then
+      rateBaselineValid = false
+    elseif rateBaselineValid then
+      -- rate = advance in playback time / elapsed wall-clock time since the
+      -- last sample. A seek in between makes this wild, so ignore anything
+      -- outside a sane window and smooth the rest.
+      local dtMs = sampledAtMs - now.positionAtMs
+      if dtMs >= 200 then
+        local observed = (sampledUs - now.positionUs) / (dtMs * 1000)
+        if observed > 0.05 and observed < 5 then
+          now.rate = math.max(0.1, math.min(4, now.rate * 0.5 + observed * 0.5))
+        end
+      end
+    end
+
+    now.positionUs, now.positionAtMs = sampledUs, sampledAtMs
+    rateBaselineValid = now.status == "Playing"
     publishNow()
   end)
 end
@@ -302,6 +328,7 @@ local function refreshMetadata()
     now.trackKey = trackKey
     if trackChanged then
       now.positionUs, now.positionAtMs = 0, noctalia.nowMs()
+      now.rate, rateBaselineValid = 1.0, false
       lyricsState = { trackKey = trackKey, status = "idle", source = nil, lines = nil }
       lyricsFetchedKey = ""
       publishLyrics()
@@ -335,6 +362,7 @@ local function handleCommand(cmd)
       sec = math.max(0, sec)
       playerctl("position", tostring(sec))
       now.positionUs, now.positionAtMs = math.floor(sec * 1000000), noctalia.nowMs()
+      rateBaselineValid = false -- next sample would jump; don't read a rate off it
       publishNow()
     end
   elseif a == "volume" then

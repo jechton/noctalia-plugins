@@ -117,7 +117,7 @@ local function progressFraction()
   end
   local pos = snap.positionUs or 0
   if snap.status == "Playing" and (snap.positionAtMs or 0) > 0 then
-    pos = pos + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000
+    pos = pos + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000 * (snap.rate or 1)
   end
   return math.max(0, math.min(1, pos / length))
 end

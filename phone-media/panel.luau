@@ -83,7 +83,7 @@ local function livePositionUs()
   end
   local base = snap.positionUs or 0
   if snap.status == "Playing" and (snap.positionAtMs or 0) > 0 then
-    base = base + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000
+    base = base + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000 * (snap.rate or 1)
   end
   return base
 end

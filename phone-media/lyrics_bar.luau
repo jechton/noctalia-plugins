@@ -28,7 +28,7 @@ local lyr = { status = "idle", source = nil, lines = nil }
 local function livePositionMs()
   local base = snap.positionUs or 0
   if snap.status == "Playing" and (snap.positionAtMs or 0) > 0 then
-    base = base + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000
+    base = base + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000 * (snap.rate or 1)
   end
   return math.floor(base / 1000)
 end
