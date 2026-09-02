@@ -119,9 +119,7 @@ function update()
   noctalia.setUpdateInterval(1000)
   tick = tick + 1
 
-  if running ~= nil then
-    render() -- keep the elapsed label ticking between polls
-  end
+  render() -- draw every tick so a failed initial fetch still shows the idle glyph, and the elapsed label keeps ticking between polls
   if tick % POLL_TICKS == 0 then
     refreshActive()
   end
