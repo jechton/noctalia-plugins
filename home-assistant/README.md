@@ -10,6 +10,12 @@ Bar and desktop widgets that render a Home Assistant Jinja template.
 | Entries | Bar widget: `template` &nbsp;·&nbsp; Desktop widget: `template-desktop` |
 | Auth | Long-lived access token, sent as `Authorization: Bearer` |
 
+## Requirements
+
+A reachable Home Assistant instance and a long-lived access token (sent as
+`Authorization: Bearer`). Each widget polls `POST /api/template` over the network
+every `poll_seconds`. No external commands are spawned. No bundled dependencies.
+
 ## How it works
 
 Both widgets read the Jinja template at `template_file`, POST it to Home
@@ -29,7 +35,7 @@ The template is **not bundled**: it's whatever you want, and often holds persona
 data. Copy `example.jinja`, adapt it, and keep the result private (an agenix
 secret, or any path outside version control).
 
-## Setup
+## Usage
 
 1. In Home Assistant, open your profile → **Security** → create a **long-lived
    access token**.
@@ -71,3 +77,13 @@ secret, or any path outside version control).
 | `column_gap` / `row_gap` | `int` | `16` / `6` | Desktop widget only: px spacing between cells / rows. |
 | `cell_height` | `int` | `0` | Desktop widget only: fixed px height per cell. 0 = text height. |
 | `font_size` | `int` | `22` | Desktop widget only: text size. |
+
+## Notes
+
+- Sends the template's contents and your access token to the configured Home
+  Assistant instance over the network; nothing else leaves the machine.
+- The template file is read from disk on every poll and never written to. It is
+  not bundled — keep it outside version control if it holds personal data.
+- Clicking a widget opens the HA URL (plus `dashboard_path`) via the default
+  browser handler.
+- `insecure_tls` disables certificate verification for that instance.

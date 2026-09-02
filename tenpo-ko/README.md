@@ -35,3 +35,9 @@ dozens' clock in a browser.
 | `drop_tenpo_prefix` | `bool` | `false` | With toki pona names, show just `seli` / `kon` / `telo` / `ma` without the leading `tenpo`. |
 | `show_emoji` | `bool` | `true` | Prefix the label with the block's element emoji. |
 | `show_seconds` | `bool` | `false` | Include seconds in the time. Also raises the redraw rate to 1s. |
+
+## Notes
+
+The time is computed locally from the system clock; the widget makes no network
+requests. Left-click runs `xdg-open https://tilde.town/~dozens/tenpoko/`, which
+spawns your default browser.

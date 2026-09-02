@@ -12,7 +12,14 @@ panel.
 | Entries | Bar widget: `bar` &nbsp;·&nbsp; Panel: `panel` |
 | Auth | Kimai API token, sent as `Authorization: Bearer` |
 
-## Setup
+## Requirements
+
+A reachable Kimai instance and an API token (sent as `Authorization: Bearer`).
+The bar widget polls the REST API over the network every `poll_seconds`; the
+panel calls it on open and on each action. No external commands are spawned. No
+bundled dependencies.
+
+## Usage
 
 1. In Kimai, open **Users → (your user) → API access** and create a token.
 2. Configure the plugin one of two ways:
@@ -22,6 +29,12 @@ panel.
      then the token (blank lines and `#` comments ignored). An agenix secret
      path works, and it wins over the inline values.
 3. Add the **Kimai** widget to a bar section. Left-click opens the panel.
+
+Open the panel manually with:
+
+```sh
+noctalia msg panel-toggle jechton/kimai:panel
+```
 
 ## Bar widget
 
@@ -58,3 +71,11 @@ recent timesheet on the server, falling back to the first project.
 | `insecure_tls` | `bool` | `false` | Skip TLS verification. Trusted private endpoints only. |
 | `show_project` | `bool` | `true` | Prefix the elapsed time with the project name (widget). |
 | `hide_when_idle` | `bool` | `false` | Hide the widget when no timer runs. |
+
+## Notes
+
+- Talks only to the configured Kimai instance, sending the API token as a bearer
+  header. Panel actions issue `POST` (start), `PATCH` (stop/edit) requests.
+- `insecure_tls` disables certificate verification for that instance.
+- The "This week" total is computed client-side from timesheets since the most
+  recent Sunday 00:00 local, including the running timer.
