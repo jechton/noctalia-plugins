@@ -1,0 +1,85 @@
+id = "jechton/kimai"
+name = "Kimai"
+version = "1.0.0"
+plugin_api = 24
+author = "jechton"
+license = "MIT"
+
+icon = "clock"
+
+description = "Bar widget and panel for a hosted Kimai instance: start, stop, and edit the running time entry."
+
+tags = ["bar", "time", "productivity", "kimai"]
+
+# Connection. Either fill base_url + api_token inline, or point credentials_file
+# at a secret file (an agenix secret path works) holding two lines, the URL then
+# the token; blank lines and #-comments are ignored. credentials_file wins over
+# the inline values.
+[[setting]]
+key = "credentials_file"
+type = "file"
+label_key = "settings.credentials_file.label"
+description_key = "settings.credentials_file.description"
+default = ""
+
+[[setting]]
+key = "base_url"
+type = "string"
+label_key = "settings.base_url.label"
+description_key = "settings.base_url.description"
+default = ""
+
+[[setting]]
+key = "api_token"
+type = "string"
+label_key = "settings.api_token.label"
+description_key = "settings.api_token.description"
+default = ""
+
+[[setting]]
+key = "poll_seconds"
+type = "int"
+label_key = "settings.poll_seconds.label"
+description_key = "settings.poll_seconds.description"
+default = 15
+min = 5
+max = 300
+advanced = true
+
+[[setting]]
+key = "insecure_tls"
+type = "bool"
+label_key = "settings.insecure_tls.label"
+description_key = "settings.insecure_tls.description"
+default = false
+advanced = true
+
+[[widget]]
+id = "bar"
+entry = "bar.luau"
+
+[widget.actions]
+left = "panel-toggle jechton/kimai:panel"
+
+[[widget.setting]]
+key = "show_project"
+type = "bool"
+label_key = "settings.show_project.label"
+description_key = "settings.show_project.description"
+default = true
+
+[[widget.setting]]
+key = "hide_when_idle"
+type = "bool"
+label_key = "settings.hide_when_idle.label"
+description_key = "settings.hide_when_idle.description"
+default = false
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 340
+height = 470
+placement = "attached"
+position = "auto"
+open_near_click = true

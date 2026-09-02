@@ -1,0 +1,77 @@
+{
+  "plugin_name": "Kimai",
+  "plugin_description": "Bar widget and panel for a hosted Kimai instance: start, stop, and edit the running time entry.",
+  "title": "Kimai",
+  "state": {
+    "loading": "Loading…",
+    "idle": "No timer running"
+  },
+  "week": {
+    "label": "This week",
+    "unavailable": "unavailable"
+  },
+  "field": {
+    "project": "Project",
+    "activity": "Activity",
+    "description": "Description",
+    "description_placeholder": "What are you working on?",
+    "begin": "Started at",
+    "begin_placeholder": "e.g. 2:47 PM"
+  },
+  "action": {
+    "start": "Start",
+    "stop": "Stop",
+    "save": "Save",
+    "retry": "Retry"
+  },
+  "tooltip": {
+    "idle": "Kimai: no timer running",
+    "not_configured": "Kimai: set the URL and API token in plugin settings",
+    "project": "Project",
+    "activity": "Activity",
+    "description": "Description",
+    "elapsed": "Elapsed"
+  },
+  "notify": {
+    "started": "Timer started",
+    "stopped": "Timer stopped",
+    "saved": "Entry updated"
+  },
+  "errors": {
+    "not_configured": "Set the Kimai URL and API token in plugin settings.",
+    "network": "Could not reach Kimai.",
+    "blocked": "Request blocked (offline mode?).",
+    "bad_time": "Start time must look like 2:47 PM or 14:47.",
+    "pick_project": "Pick a project and an activity first."
+  },
+  "settings": {
+    "base_url": {
+      "label": "Kimai URL",
+      "description": "Base URL of the Kimai instance, without a trailing /api (e.g. https://kimai.example.com)."
+    },
+    "api_token": {
+      "label": "API token",
+      "description": "A Kimai API token (Users → API access). Ignored when a token file is set."
+    },
+    "credentials_file": {
+      "label": "Credentials file",
+      "description": "Path to a secret file with two lines, the Kimai URL then the API token. Takes precedence over the inline values."
+    },
+    "poll_seconds": {
+      "label": "Poll interval",
+      "description": "How often the bar widget re-checks the running entry, in seconds."
+    },
+    "insecure_tls": {
+      "label": "Skip TLS verification",
+      "description": "Disable certificate and hostname verification. Only for a trusted endpoint on a private network."
+    },
+    "show_project": {
+      "label": "Show project name",
+      "description": "Prefix the elapsed time with the running entry's project."
+    },
+    "hide_when_idle": {
+      "label": "Hide when idle",
+      "description": "Hide the widget entirely when no timer is running."
+    }
+  }
+}

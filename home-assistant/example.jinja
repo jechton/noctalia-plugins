@@ -1,0 +1,63 @@
+{# Example template: a people / whereabouts widget. Any Home Assistant Jinja
+   template works here; this is one worked example. Copy it, adapt it, and point
+   the widget's template_file at your copy (keep it out of version control if it
+   names real people and places).
+
+   Bar widget: the whole output is flattened to one line.
+   Desktop widget: each non-blank output line becomes its own row, so the
+   per-person loop below lands as one row per person.
+
+   Per person it emits "{person}{location}{eta}":
+     - person emoji from `people`
+     - a U+2060 word-joiner so the pair stays glued
+     - location emoji from `location_emojis`, or 🚗 when away and driving
+     - subscript ETA minutes (or H.MM) when the person is away
+
+   `is_driving` and `eta_entity` come from a custom_templates macro file. #}
+
+{% from 'location.jinja' import is_driving, eta_entity %}
+
+{% set people = {'alice': '🅰️', 'bob': '🅱️'} %}
+{% set location_emojis = {
+  'Work': '🏢',
+  'Gym': '🏋️',
+  'home': '🏠',
+  'away': '🗺️'
+} %}
+
+{% set subs = {'0':'₀','1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'} %}
+
+{% for person, emoji in people.items() -%}
+  {% set person_entity = 'person.' ~ person %}
+  {% set raw_loc = states(person_entity) -%}
+  {% set is_away = raw_loc in ['not_home', 'away'] or raw_loc not in location_emojis -%}
+  {% set loc = 'away' if is_away else raw_loc -%}
+
+  {% set driving = is_driving(person_entity) | trim | lower == 'true' %}
+
+  {% set loc_emoji = '🚗' if loc == 'away' and driving else location_emojis.get(loc, '❓') -%}
+
+  {% set time_str = '' %}
+  {% if is_away %}
+    {% set eta_ent = eta_entity(person_entity) | trim %}
+    {% set mins = states(eta_ent) | int(default=-1) %}
+    {% if mins >= 0 %}
+      {% if mins > 59 %}
+        {% set h = (mins / 60) | int %}
+        {% set m = mins % 60 %}
+        {% set h_sub = namespace(val='') %}
+        {% for char in h | string %}{% set h_sub.val = h_sub.val ~ subs.get(char, char) %}{% endfor %}
+        {% set m_padded = (m if m >= 10 else '0' ~ m) | string %}
+        {% set m_sub = namespace(val='') %}
+        {% for char in m_padded %}{% set m_sub.val = m_sub.val ~ subs.get(char, char) %}{% endfor %}
+        {% set time_str = h_sub.val ~ '.' ~ m_sub.val %}
+      {% else %}
+        {% set m_sub = namespace(val='') %}
+        {% for char in mins | string %}{% set m_sub.val = m_sub.val ~ subs.get(char, char) %}{% endfor %}
+        {% set time_str = m_sub.val %}
+      {% endif %}
+    {% endif %}
+  {% endif %}
+
+  {{ emoji }}{{ '⁠' }}{{ loc_emoji }}{{ time_str }}{{ ' ' if not loop.last else '' }}
+{%- endfor %}

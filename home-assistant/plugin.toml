@@ -1,0 +1,179 @@
+id = "jechton/home-assistant"
+name = "Home Assistant"
+version = "1.0.0"
+plugin_api = 24
+author = "jechton"
+license = "MIT"
+
+icon = "home"
+
+description = "Bar and desktop widgets that render a Home Assistant Jinja template via the /api/template endpoint."
+
+tags = ["bar", "desktop", "home-assistant"]
+
+# Connection. Either fill base_url + token inline, or point credentials_file at a
+# secret file (an agenix secret path works) holding two lines, the HA URL then a
+# long-lived access token; blank lines and #-comments are ignored.
+# credentials_file wins over the inline values.
+[[setting]]
+key = "credentials_file"
+type = "file"
+label_key = "settings.credentials_file.label"
+description_key = "settings.credentials_file.description"
+default = ""
+
+[[setting]]
+key = "base_url"
+type = "string"
+label_key = "settings.base_url.label"
+description_key = "settings.base_url.description"
+default = ""
+
+[[setting]]
+key = "token"
+type = "string"
+label_key = "settings.token.label"
+description_key = "settings.token.description"
+default = ""
+
+[[setting]]
+key = "insecure_tls"
+type = "bool"
+label_key = "settings.insecure_tls.label"
+description_key = "settings.insecure_tls.description"
+default = false
+advanced = true
+
+[[widget]]
+id = "template"
+entry = "template.luau"
+
+# Required. The template is user-supplied and not bundled (it often contains
+# personal data); see example.jinja for the shape. An agenix secret path works.
+[[widget.setting]]
+key = "template_file"
+type = "file"
+label_key = "settings.template_file.label"
+description_key = "settings.template_file.description"
+default = ""
+
+[[widget.setting]]
+key = "poll_seconds"
+type = "int"
+label_key = "settings.poll_seconds.label"
+description_key = "settings.poll_seconds.description"
+default = 30
+min = 5
+max = 600
+
+[[widget.setting]]
+key = "dashboard_path"
+type = "string"
+label_key = "settings.dashboard_path.label"
+description_key = "settings.dashboard_path.description"
+default = ""
+
+[[widget.setting]]
+key = "font_family"
+type = "string"
+label_key = "settings.font_family.label"
+description_key = "settings.font_family.description"
+default = ""
+advanced = true
+
+# Desktop widget: the same template, laid out as a vertical list (one output
+# line per row) at a larger size.
+[[desktop_widget]]
+id = "template-desktop"
+entry = "template_desktop.luau"
+
+[[desktop_widget.setting]]
+key = "template_file"
+type = "file"
+label_key = "settings.template_file.label"
+description_key = "settings.template_file.description"
+default = ""
+
+[[desktop_widget.setting]]
+key = "poll_seconds"
+type = "int"
+label_key = "settings.poll_seconds.label"
+description_key = "settings.poll_seconds.description"
+default = 30
+min = 5
+max = 600
+
+[[desktop_widget.setting]]
+key = "title"
+type = "string"
+label_key = "settings.title.label"
+description_key = "settings.title.description"
+default = ""
+
+[[desktop_widget.setting]]
+key = "columns"
+type = "int"
+label_key = "settings.columns.label"
+description_key = "settings.columns.description"
+default = 1
+min = 1
+max = 12
+
+[[desktop_widget.setting]]
+key = "cell_width"
+type = "int"
+label_key = "settings.cell_width.label"
+description_key = "settings.cell_width.description"
+default = 0
+min = 0
+max = 1000
+
+[[desktop_widget.setting]]
+key = "cell_align"
+type = "select"
+label_key = "settings.cell_align.label"
+description_key = "settings.cell_align.description"
+default = "center"
+options = [
+  { value = "left", label_key = "settings.cell_align.left" },
+  { value = "center", label_key = "settings.cell_align.center" },
+  { value = "right", label_key = "settings.cell_align.right" },
+]
+
+[[desktop_widget.setting]]
+key = "column_gap"
+type = "int"
+label_key = "settings.column_gap.label"
+description_key = "settings.column_gap.description"
+default = 16
+min = 0
+max = 400
+
+[[desktop_widget.setting]]
+key = "row_gap"
+type = "int"
+label_key = "settings.row_gap.label"
+description_key = "settings.row_gap.description"
+default = 6
+min = 0
+max = 400
+
+[[desktop_widget.setting]]
+key = "cell_height"
+type = "int"
+label_key = "settings.cell_height.label"
+description_key = "settings.cell_height.description"
+default = 0
+min = 0
+max = 600
+advanced = true
+
+[[desktop_widget.setting]]
+key = "font_size"
+type = "int"
+label_key = "settings.font_size.label"
+description_key = "settings.font_size.description"
+default = 22
+min = 8
+max = 96
+advanced = true

@@ -1,0 +1,90 @@
+{
+  "plugin_name": "Home Assistant",
+  "plugin_description": "Bar and desktop widgets that render a Home Assistant Jinja template via the /api/template endpoint.",
+  "widget": {
+    "error": "HA ?",
+    "empty": "—",
+    "no_template": "HA ⚙",
+    "no_template_tip": "Set this widget's template_file to a Jinja template (see example.jinja)."
+  },
+  "state": {
+    "loading": "Loading…"
+  },
+  "tooltip": {
+    "updated": "Updated"
+  },
+  "errors": {
+    "not_configured": "Set the Home Assistant URL and token in plugin settings.",
+    "network": "Could not reach Home Assistant.",
+    "blocked": "Request blocked (offline mode?)."
+  },
+  "settings": {
+    "credentials_file": {
+      "label": "Credentials file",
+      "description": "Path to a secret file with two lines, the Home Assistant URL then a long-lived access token. Takes precedence over the inline values."
+    },
+    "base_url": {
+      "label": "Home Assistant URL",
+      "description": "Base URL of the instance, e.g. https://ha.example.com or a Nabu Casa URL."
+    },
+    "token": {
+      "label": "Access token",
+      "description": "A long-lived access token (HA profile page). Ignored when a credentials file is set."
+    },
+    "insecure_tls": {
+      "label": "Skip TLS verification",
+      "description": "Disable certificate and hostname verification. Only for a trusted endpoint on a private network."
+    },
+    "template_file": {
+      "label": "Template file",
+      "description": "Path to the Jinja template to render (required). Not bundled; see example.jinja. An agenix secret path works."
+    },
+    "poll_seconds": {
+      "label": "Poll interval",
+      "description": "How often the template is re-rendered, in seconds."
+    },
+    "dashboard_path": {
+      "label": "Dashboard path",
+      "description": "Path appended to the HA URL when the widget is clicked, e.g. /lovelace/home."
+    },
+    "font_family": {
+      "label": "Font family",
+      "description": "Override the bar font for this widget. Must be an installed family."
+    },
+    "title": {
+      "label": "Title",
+      "description": "Optional heading shown above the grid. Empty for no heading."
+    },
+    "columns": {
+      "label": "Columns",
+      "description": "Items per row. 1 is a vertical list; set it to your item count for a single row; in between is a grid."
+    },
+    "cell_width": {
+      "label": "Cell width",
+      "description": "Fixed width per cell in pixels, so columns line up on a constant pitch. 0 uses each item's natural width."
+    },
+    "cell_height": {
+      "label": "Cell height",
+      "description": "Fixed height per cell in pixels. 0 follows the text height."
+    },
+    "cell_align": {
+      "label": "Cell alignment",
+      "description": "Where the text sits inside a fixed-width cell.",
+      "left": "Left",
+      "center": "Center",
+      "right": "Right"
+    },
+    "column_gap": {
+      "label": "Column gap",
+      "description": "Horizontal space between cells, in pixels."
+    },
+    "row_gap": {
+      "label": "Row gap",
+      "description": "Vertical space between rows, in pixels."
+    },
+    "font_size": {
+      "label": "Font size",
+      "description": "Text size for the rows in the desktop widget."
+    }
+  }
+}
