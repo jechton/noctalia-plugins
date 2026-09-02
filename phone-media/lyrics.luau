@@ -101,7 +101,8 @@ end
 -- so a partly-timestamped file still shows every line. A line may carry several
 -- timestamps (a repeated chorus), expanding to one entry per timestamp. Honours
 -- an `[offset:±ms]` tag by shifting every timestamp (positive = later, matching
--- the noctalia-official media-lyrics plugin). Returns nil if nothing parsed.
+-- the community media-lyrics plugin, tranzem/media-lyrics). Returns nil if
+-- nothing parsed.
 function M.parseLRC(text)
   if type(text) ~= "string" or text == "" then
     return nil

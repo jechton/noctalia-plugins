@@ -115,14 +115,18 @@ function render()
     for i = first, last do
       local isCurrent = i == activeIndex
       local timeMs = lyr.lines[i].timeMs
-      rendered[#rendered + 1] = ui.box({
+      -- ui.row as the click target (matching the community media-lyrics
+      -- plugin, tranzem/media-lyrics): ui.box is a childless fill node and
+      -- would hide the label. onClick only when the line has a real timestamp.
+      rendered[#rendered + 1] = ui.row({
         align = "stretch",
-        onClick = function()
+        onClick = timeMs >= 0 and function()
           seekToLineMs(timeMs)
-        end,
+        end or nil,
       }, {
         ui.label({
           text = lyr.lines[i].text,
+          flexGrow = 1,
           fontSize = isCurrent and CURRENT_LINE_FONT_SIZE or OTHER_LINE_FONT_SIZE,
           fontWeight = isCurrent and "bold" or "normal",
           color = isCurrent and "primary" or "on_surface_variant",
