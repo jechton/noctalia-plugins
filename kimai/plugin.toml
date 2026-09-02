@@ -83,3 +83,10 @@ height = 470
 placement = "attached"
 position = "auto"
 open_near_click = true
+
+[[panel.setting]]
+key = "show_client"
+type = "bool"
+label_key = "settings.show_client.label"
+description_key = "settings.show_client.description"
+default = true

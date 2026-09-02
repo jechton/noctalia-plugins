@@ -10,6 +10,9 @@
 
 local kimai = require("./kimai.luau")
 
+-- Whether to prefix each project option with its Kimai customer (client) name.
+local SHOW_CLIENT = noctalia.getConfig("show_client") ~= false
+
 -- ── state ────────────────────────────────────────────────────────────────────
 
 local isOpen = false
@@ -43,7 +46,7 @@ local inputRevision = 0 -- bump to force inputs/selects to re-read their value
 -- ── helpers ──────────────────────────────────────────────────────────────────
 
 local function projectLabel(entity)
-  if type(entity.parentTitle) == "string" and entity.parentTitle ~= "" then
+  if SHOW_CLIENT and type(entity.parentTitle) == "string" and entity.parentTitle ~= "" then
     return entity.parentTitle .. " / " .. tostring(entity.name)
   end
   return tostring(entity.name)

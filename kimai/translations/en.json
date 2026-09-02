@@ -72,6 +72,10 @@
     "hide_when_idle": {
       "label": "Hide when idle",
       "description": "Hide the widget entirely when no timer is running."
+    },
+    "show_client": {
+      "label": "Show client name",
+      "description": "Prefix each project in the picker with its Kimai customer name."
     }
   }
 }
