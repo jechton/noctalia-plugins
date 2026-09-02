@@ -1,0 +1,3 @@
+# Editor type definitions, fetched per-plugin from noctalia's official-plugins
+# repo for luau-lsp. Not checked in.
+noctalia.d.luau

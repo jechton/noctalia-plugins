@@ -1,0 +1,25 @@
+{
+  "plugin_name": "Tenpo Ko",
+  "plugin_description": "Bar widget showing tenpo ko (elemental time): the UTC day split into four six-hour blocks, fire/air/water/earth.",
+  "settings": {
+    "name_style": {
+      "label": "Block name",
+      "description": "Label the current block with its English element name, its toki pona name, or not at all.",
+      "english": "English (fire, air, water, earth)",
+      "toki_pona": "Toki pona (tenpo seli, kon, telo, ma)",
+      "none": "No name"
+    },
+    "drop_tenpo_prefix": {
+      "label": "Drop \"tenpo\" prefix",
+      "description": "Show just the element word (seli, kon, telo, ma) without the leading \"tenpo\"."
+    },
+    "show_emoji": {
+      "label": "Show emoji",
+      "description": "Prefix the label with the block's element emoji."
+    },
+    "show_seconds": {
+      "label": "Show seconds",
+      "description": "Show the seconds digits in the time within the block."
+    }
+  }
+}

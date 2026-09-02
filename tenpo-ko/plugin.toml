@@ -1,0 +1,54 @@
+id = "jechton/tenpo-ko"
+name = "Tenpo Ko"
+version = "1.0.0"
+plugin_api = 24
+author = "jechton"
+license = "MIT"
+
+icon = "clock"
+
+description = "Bar widget showing tenpo ko (elemental time): the UTC day split into four six-hour blocks, fire/air/water/earth."
+
+tags = ["bar", "clock", "time"]
+
+[[widget]]
+id = "bar"
+entry = "bar.luau"
+
+# Left opens dozens' tenpo ko clock, where the system comes from.
+[widget.actions]
+left = "exec xdg-open https://tilde.town/~dozens/tenpoko/"
+
+[[widget.setting]]
+key = "name_style"
+type = "select"
+label_key = "settings.name_style.label"
+description_key = "settings.name_style.description"
+default = "english"
+options = [
+  { value = "english", label_key = "settings.name_style.english" },
+  { value = "toki_pona", label_key = "settings.name_style.toki_pona" },
+  { value = "none", label_key = "settings.name_style.none" },
+]
+
+[[widget.setting]]
+key = "drop_tenpo_prefix"
+type = "bool"
+label_key = "settings.drop_tenpo_prefix.label"
+description_key = "settings.drop_tenpo_prefix.description"
+default = false
+visible_when = { key = "name_style", values = ["toki_pona"] }
+
+[[widget.setting]]
+key = "show_emoji"
+type = "bool"
+label_key = "settings.show_emoji.label"
+description_key = "settings.show_emoji.description"
+default = true
+
+[[widget.setting]]
+key = "show_seconds"
+type = "bool"
+label_key = "settings.show_seconds.label"
+description_key = "settings.show_seconds.description"
+default = false
