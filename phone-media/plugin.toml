@@ -182,7 +182,11 @@ visible_when = { key = "album_art_only", values = ["false"] }
 id = "panel"
 entry = "panel.luau"
 width = 340
-height = 520
+# The window is fixed (attached panels can't size to content); this fits the
+# default card - 160px art, text, progress, transport, the 3-line lyrics
+# section, "Full lyrics" button - with a 1-line title. A 2-line title or the
+# player switcher spills into the inner scroll rather than resizing the window.
+height = 544
 placement = "attached"
 position = "auto"
 open_near_click = true

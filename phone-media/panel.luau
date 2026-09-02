@@ -336,6 +336,7 @@ function render()
 
   panel.render(ui.column({ flexGrow = 1, gap = 16, align = "stretch" }, {
     header(),
+    -- Sized for the common card; a 2-line title / the switcher overflow here.
     ui.scroll({ flexGrow = 1, gap = 12, align = "stretch" }, body),
   }))
 end
