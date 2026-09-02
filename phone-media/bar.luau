@@ -1,23 +1,14 @@
 --!nonstrict
 -- Phone Media: a now-playing bar widget that replaces noctalia's builtin
--- `media` widget. It mirrors that widget's look, settings, and pointer
--- gestures, and additionally routes wheel/touchpad scroll to a volume control:
---   * active player is KDE Connect  -> the phone's volume (MPRIS Volume, which
---     kdeconnect proxies to the device)
---   * any other player              -> the laptop's own volume, same as the
---     builtin volume widget
+-- `media` widget. It mirrors that widget's look and settings, and additionally
+-- routes wheel/touchpad scroll to a volume control (the phone's volume when the
+-- active player is KDE Connect, otherwise the laptop's own volume).
 --
--- The builtin media widget is compiled C++ with no scroll hook, and the plugin
--- API exposes no MPRIS state, so player data comes from `playerctl`:
---   * one `playerctl -a metadata` snapshot a second
---   * one `playerctl position` a second while show_progress is on; the bar
---     advances locally between those polls
---   * the marquee/redraw runs on the fast update tick
---
--- The widget renders no clickable elements of its own. Left opens this plugin's
--- panel; right/back/forward run playerctl directly (see plugin.toml
--- [widget.actions]) so they act on the phone rather than noctalia's idea of the
--- active player; scroll is handled here as a volume control.
+-- A thin consumer of the service (see service.luau): it watches pm.now and
+-- renders the snapshot, interpolating the progress bar between the service's
+-- position publishes. Scroll and right-click send pm.cmd. Left opens this
+-- plugin's panel; back/forward run playerctl directly (see plugin.toml
+-- [widget.actions]).
 
 -- ── settings ─────────────────────────────────────────────────────────────────
 
@@ -41,40 +32,30 @@ local TITLE_WIDTH = math.max(40, MAX_LENGTH - ART_SLOT)
 local TITLE_CHARS = math.max(6, math.floor(TITLE_WIDTH / 7))
 
 local MARQUEE_TICKS = 2
-local METADATA_TICKS = 4
--- One playerctl position call a second; between them the bar advances locally
--- (see advanceProgress) so a moving progress bar costs no extra subprocesses.
-local POSITION_TICKS = 4
-local VOLUME_STEP = "0.05"
-
-local SEP = string.char(31)
--- playerInstance, not playerName: KDE Connect reports every phone app as the
--- same playerName ("kdeconnect"), so a later `playerctl --player=kdeconnect`
--- (position, play-pause, volume) would hit an arbitrary one of them. The
--- instance name (kdeconnect.mpris_<id>) is unique per app.
-local FORMAT = table.concat({
-  "{{playerInstance}}",
-  "{{status}}",
-  "{{title}}",
-  "{{artist}}",
-  "{{mpris:artUrl}}",
-  "{{mpris:length}}",
-}, SEP)
 
 local dataDir = noctalia.pluginDataDir()
--- Per-VM token so two of this widget (e.g. one bar per monitor) writing into the
--- shared plugin data dir don't clobber each other's cover cache files. The table
--- address is unique per Luau VM, unlike a time-seeded random which collides when
--- two widgets start in the same second.
+-- Per-VM token so two of this widget (one bar per monitor) writing into the
+-- shared plugin data dir don't clobber each other's cover cache files.
 local COVER_TAG = (tostring({}):match("0x0*(%x+)") or "0") .. ""
 
--- ── state ────────────────────────────────────────────────────────────────────
+-- ── state (snapshot from the service) ────────────────────────────────────────
 
-local current = nil -- { name, status, title, artist, art, lengthUs }
+local function emptyNow()
+  return {
+    hasPlayer = false,
+    name = "",
+    status = "",
+    title = "",
+    artist = "",
+    artUrl = "",
+    lengthUs = 0,
+    positionUs = 0,
+    positionAtMs = 0,
+  }
+end
+
+local snap = emptyNow()
 local hovered = false
-local available = false
-local requestInFlight = false
-local positionInFlight = false
 
 local marqueeOffset = 1
 local tick = 0
@@ -83,25 +64,20 @@ local lastText = ""
 local artUrl = ""
 local artPath = nil
 local coverRevision = 0
-local progressFraction = 0
 
 -- ── helpers ──────────────────────────────────────────────────────────────────
 
-local function isKde(name)
-  return name ~= nil and string.find(name, "kdeconnect", 1, true) ~= nil
-end
-
-local function displayText(row)
-  if row == nil then
+local function displayText()
+  if not snap.hasPlayer then
     return ""
   end
-  if HIDE_ARTIST or row.artist == "" then
-    return row.title
+  if HIDE_ARTIST or snap.artist == "" then
+    return snap.title
   end
   if ARTIST_FIRST then
-    return row.artist .. " - " .. row.title
+    return snap.artist .. " - " .. snap.title
   end
-  return row.title .. " - " .. row.artist
+  return snap.title .. " - " .. snap.artist
 end
 
 local function utf8Chars(value)
@@ -132,6 +108,18 @@ local function marquee(value)
     out[#out + 1] = padded[((marqueeOffset + i - 1) % n) + 1]
   end
   return table.concat(out)
+end
+
+local function progressFraction()
+  local length = snap.lengthUs or 0
+  if length <= 0 then
+    return 0
+  end
+  local pos = snap.positionUs or 0
+  if snap.status == "Playing" and (snap.positionAtMs or 0) > 0 then
+    pos = pos + math.max(0, noctalia.nowMs() - snap.positionAtMs) * 1000
+  end
+  return math.max(0, math.min(1, pos / length))
 end
 
 -- ── artwork ──────────────────────────────────────────────────────────────────
@@ -166,126 +154,10 @@ local function updateArtwork(url)
   end)
 end
 
--- ── player selection ─────────────────────────────────────────────────────────
-
--- KDE Connect leaves an MPRIS player on the bus for every media-capable app on
--- the phone, whether or not it has anything queued. Those idle players report
--- Paused/Stopped with no title, so a real "now playing" needs either active
--- playback or actual track metadata.
-local function hasMedia(row)
-  return row.status == "Playing" or (row.title ~= "" and row.title ~= row.name)
-end
-
-local function pick(rows)
-  local kdePlaying, playing, kdeMedia, anyMedia
-  for _, r in ipairs(rows) do
-    if r.status == "Playing" then
-      playing = playing or r
-      if isKde(r.name) then
-        kdePlaying = kdePlaying or r
-      end
-    end
-    if hasMedia(r) then
-      anyMedia = anyMedia or r
-      if isKde(r.name) then
-        kdeMedia = kdeMedia or r
-      end
-    end
-  end
-  return kdePlaying or playing or kdeMedia or anyMedia
-end
-
-local function refreshPosition()
-  if not SHOW_PROGRESS or positionInFlight or current == nil or (current.lengthUs or 0) <= 0 then
-    return
-  end
-  positionInFlight = true
-  local name = current.name
-  noctalia.runAsync({ "playerctl", "--player=" .. name, "position" }, function(result)
-    positionInFlight = false
-    if result.exitCode ~= 0 or current == nil or current.name ~= name then
-      return
-    end
-    local seconds = tonumber((result.stdout or ""):match("[%d%.]+"))
-    if seconds == nil then
-      return
-    end
-    local fraction = seconds / (current.lengthUs / 1000000)
-    progressFraction = math.max(0, math.min(1, fraction))
-    render()
-  end)
-end
-
--- Nudge the bar forward between position polls so it moves at frame rate
--- without a playerctl call each tick.
-local function advanceProgress()
-  if not SHOW_PROGRESS or current == nil or current.status ~= "Playing" or (current.lengthUs or 0) <= 0 then
-    return
-  end
-  local perTick = 0.25 / (current.lengthUs / 1000000)
-  progressFraction = math.min(1, progressFraction + perTick)
-  render()
-end
-
-local function refreshMetadata()
-  if requestInFlight then
-    return
-  end
-  requestInFlight = true
-
-  noctalia.runAsync({ "playerctl", "-a", "metadata", "--format", FORMAT }, function(result)
-    requestInFlight = false
-
-    if result.exitCode ~= 0 then
-      current, available = nil, false
-      artUrl, artPath, progressFraction = "", nil, 0
-      barWidget.setVisible(not HIDE_WHEN_NO_MEDIA)
-      render()
-      return
-    end
-
-    local rows = {}
-    for line in (result.stdout or ""):gmatch("[^\n]+") do
-      local name, status, title, artist, art, lengthUs = line:match(
-        "^(.-)" .. SEP .. "(.-)" .. SEP .. "(.-)" .. SEP .. "(.-)" .. SEP .. "(.-)" .. SEP .. "(.*)$"
-      )
-      if name ~= nil then
-        table.insert(rows, {
-          name = name,
-          status = status,
-          title = (title ~= "" and title) or name,
-          artist = artist or "",
-          art = art or "",
-          lengthUs = tonumber(lengthUs) or 0,
-        })
-      end
-    end
-
-    local chosen = pick(rows)
-    if chosen == nil then
-      current, available, progressFraction = nil, false, 0
-      barWidget.setVisible(not HIDE_WHEN_NO_MEDIA)
-      render()
-      return
-    end
-
-    local trackChanged = current == nil or current.name ~= chosen.name or current.title ~= chosen.title
-    available = true
-    current = chosen
-    if trackChanged then
-      progressFraction = 0
-    end
-    barWidget.setVisible(true)
-    updateArtwork(chosen.art)
-    render()
-  end)
-end
-
 -- ── rendering ────────────────────────────────────────────────────────────────
 
 -- Builtin bar widgets carry a small horizontal inset; plugin widgets render
--- flush unless they add their own. Wrap every emit so this widget keeps a gap
--- from its neighbours without widening the bar-wide widget_spacing.
+-- flush unless they add their own.
 local WIDGET_PAD_H = 6
 
 local function emit(node, stretch)
@@ -299,18 +171,19 @@ local function emit(node, stretch)
   end
 end
 
--- Nothing here registers an onClick, so left/right/back/forward fall through to
--- plugin.toml [widget.actions] (left opens this plugin's panel, the rest run
--- playerctl); scroll is handled by onScroll below.
+-- Nothing here registers an onClick, so left/back/forward fall through to
+-- plugin.toml [widget.actions]; right-click and scroll are handled below.
 function render()
-  if not available or current == nil then
+  if not snap.hasPlayer then
+    barWidget.setVisible(not HIDE_WHEN_NO_MEDIA)
     if not HIDE_WHEN_NO_MEDIA then
       emit(ui.glyph({ key = "idle", name = "disc-filled", size = 16, color = "on_surface_variant" }))
     end
     return
   end
 
-  local playing = current.status == "Playing"
+  barWidget.setVisible(true)
+  local playing = snap.status == "Playing"
   local vertical = barWidget.isVertical()
 
   local cover
@@ -345,7 +218,7 @@ function render()
   end
   children[#children + 1] = ui.label({
     key = "title",
-    text = marquee(displayText(current)),
+    text = marquee(displayText()),
     maxLines = 1,
     maxWidth = TITLE_WIDTH,
     color = playing and "on_surface" or "on_surface_variant",
@@ -353,22 +226,18 @@ function render()
 
   local row = ui.row({ key = "content", gap = 6, align = "center" }, children)
 
-  if SHOW_PROGRESS and (current.lengthUs or 0) > 0 then
-    -- width = 0: ui.progress and ui.spacer are bare nodes that measure at their
-    -- last laid-out size, so in a stretch column they would ratchet the widget
-    -- wider on every longer title and never shrink back. Zeroing their measured
-    -- width lets the title row alone set the column width; align = "stretch"
-    -- still paints the bar across that full width.
+  if SHOW_PROGRESS and (snap.lengthUs or 0) > 0 then
+    -- width = 0: bare nodes measure at their last laid-out size, so zeroing the
+    -- progress/spacer width lets the title row alone set the column width;
+    -- align = "stretch" still paints the bar across it.
     local progress = ui.progress({
       key = "progress",
-      progress = progressFraction,
+      progress = progressFraction(),
       width = 0,
       height = PROGRESS_HEIGHT,
       radius = 1,
       fill = "primary",
     })
-    -- Balance the progress bar with an equal spacer on the row's other edge, so
-    -- toggling the setting keeps the text vertically centered instead of shifting.
     local balance = ui.spacer({ key = "progress-balance", width = 0, height = PROGRESS_HEIGHT })
     local stack = PROGRESS_ABOVE and { progress, row, balance } or { balance, row, progress }
     emit(ui.column({ key = "root", gap = 0, align = "stretch" }, stack), true)
@@ -379,26 +248,25 @@ end
 
 -- ── wiring ───────────────────────────────────────────────────────────────────
 
+noctalia.state.watch("pm.now", function(value)
+  snap = value or emptyNow()
+  updateArtwork(snap.artUrl)
+  render()
+end)
+
 function update()
   noctalia.setUpdateInterval(250)
   tick = tick + 1
 
-  local text = displayText(current)
+  local text = displayText()
   if text ~= lastText then
     lastText, marqueeOffset, tick = text, 1, 0
     render()
   elseif (TITLE_SCROLL == "always" or (TITLE_SCROLL == "on_hover" and hovered)) and tick % MARQUEE_TICKS == 0 then
     marqueeOffset = marqueeOffset + 1
     render()
-  end
-
-  if tick % METADATA_TICKS == 0 then
-    refreshMetadata()
-  end
-  if tick % POSITION_TICKS == 0 then
-    refreshPosition()
-  else
-    advanceProgress()
+  elseif SHOW_PROGRESS and snap.status == "Playing" then
+    render() -- advance the interpolated progress bar
   end
 end
 
@@ -411,22 +279,18 @@ function onHover(entered)
 end
 
 -- BTN_RIGHT stays with this widget (plugin.toml binds only left/back/forward),
--- so play-pause can target the exact player the widget is showing.
+-- so play-pause targets the exact player the service is showing.
 function onRightClick()
-  local name = current ~= nil and current.name or "kdeconnect,%any"
-  noctalia.runAsync({ "playerctl", "--player=" .. name, "play-pause" })
+  noctalia.state.set("pm.cmd", { action = "toggle", nonce = noctalia.nowMs() })
 end
 
 function onScroll(axis, steps)
   if axis ~= "vertical" or steps == 0 then
     return
   end
-  if current ~= nil and isKde(current.name) then
-    local delta = steps > 0 and (VOLUME_STEP .. "-") or (VOLUME_STEP .. "+")
-    noctalia.runAsync({ "playerctl", "--player=" .. current.name, "volume", delta })
-  else
-    noctalia.runAsync({ "noctalia", "msg", steps > 0 and "volume-down" or "volume-up" })
-  end
+  noctalia.state.set("pm.cmd", { action = "volume", dir = steps > 0 and "down" or "up", nonce = noctalia.nowMs() })
 end
 
-refreshMetadata()
+snap = noctalia.state.get("pm.now") or emptyNow()
+updateArtwork(snap.artUrl)
+render()
