@@ -44,6 +44,12 @@ label_key = "settings.local_lyrics_dir.label"
 description_key = "settings.local_lyrics_dir.description"
 default = ""
 
+# Headless owner of player state + lyrics; every UI entry below is a thin
+# consumer of the snapshots it publishes through noctalia.state.
+[[service]]
+id = "service"
+entry = "service.luau"
+
 [[widget]]
 id = "bar"
 entry = "bar.luau"
