@@ -83,6 +83,7 @@ local lyricsFetchToken = 0
 local lyricsLoading = false
 local lyricsLines = nil
 local lyricsSource = nil
+local lyricsStatus = nil -- nil | "unreachable"
 
 local tick = 0
 
@@ -197,12 +198,12 @@ local function fetchLyricsForCurrent()
   end
   lyricsFetchToken = lyricsFetchToken + 1
   local token = lyricsFetchToken
-  lyricsLoading, lyricsLines, lyricsSource = true, nil, nil
-  lyrics.fetchLyrics(current, function(lines, source)
+  lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = true, nil, nil, nil
+  lyrics.fetchLyrics(current, function(lines, source, status)
     if token ~= lyricsFetchToken then
       return
     end
-    lyricsLoading, lyricsLines, lyricsSource = false, lines, source
+    lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = false, lines, source, status
     render()
   end)
 end
@@ -249,7 +250,7 @@ local function refreshMetadata()
     if result.exitCode ~= 0 then
       current, players = nil, {}
       artUrl, artPath = "", nil
-      lyricsKey, lyricsLoading, lyricsLines, lyricsSource = "", false, nil, nil
+      lyricsKey, lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = "", false, nil, nil, nil
       render()
       return
     end
@@ -289,7 +290,7 @@ local function refreshMetadata()
     if chosen == nil then
       current, positionUs = nil, 0
       artUrl, artPath = "", nil
-      lyricsKey, lyricsLoading, lyricsLines, lyricsSource = "", false, nil, nil
+      lyricsKey, lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = "", false, nil, nil, nil
       render()
       return
     end
@@ -461,7 +462,7 @@ function render()
       })
     elseif lyricsLines == nil then
       lyricsSection[1] = ui.label({
-        text = noctalia.tr("ui.lyrics_not_found"),
+        text = noctalia.tr(lyricsStatus == "unreachable" and "ui.lyrics_unreachable" or "ui.lyrics_not_found"),
         fontSize = 12,
         color = "on_surface_variant",
         textAlign = "center",

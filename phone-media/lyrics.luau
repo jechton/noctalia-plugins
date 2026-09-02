@@ -289,6 +289,13 @@ local function statusOk(res)
   return res ~= nil and res.ok == true and res.status ~= nil and res.status >= 200 and res.status < 300
 end
 
+-- res.ok is transport success, not HTTP status: false means the request never
+-- completed (offline, DNS, timeout), so a second request to the same host would
+-- fail identically - report it as "unreachable" rather than "no lyrics found".
+local function transportFailed(res)
+  return res == nil or res.ok ~= true
+end
+
 -- Of the search hits, prefer the one whose duration is closest to the playing
 -- track (within 5s), so a "live" or extended cut whose timestamps wouldn't line
 -- up doesn't win just for being first. Falls back to the first hit.
@@ -318,6 +325,10 @@ local function searchFallback(track, callback)
   )
   local durationSeconds = math.floor((track.lengthUs or 0) / 1000000)
   local started = noctalia.http({ url = BASE_URL .. "/search?" .. query, headers = HEADERS }, function(res)
+    if transportFailed(res) then
+      callback(nil, nil, nil, "unreachable")
+      return
+    end
     if not statusOk(res) or res.body == nil or res.body == "" then
       callback(nil, nil)
       return
@@ -331,14 +342,15 @@ local function searchFallback(track, callback)
     callback(lines, source, raw)
   end)
   if not started then
-    callback(nil, nil)
+    callback(nil, nil, nil, "unreachable")
   end
 end
 
--- track = { title, artist, album, lengthUs }. callback(lines_or_nil, source)
--- where source is "synced", "plain", or nil when nothing was found. Resolution
--- order: in-memory cache, user's local_lyrics_dir, on-disk cache, lrclib /get,
--- lrclib /search.
+-- track = { title, artist, album, lengthUs }.
+-- callback(lines_or_nil, source, status): source is "synced" / "plain" / nil;
+-- status is "unreachable" when the lyrics service could not be reached, else
+-- nil (found, or a clean "no lyrics on file"). Resolution order: in-memory
+-- cache, user's local_lyrics_dir, on-disk cache, lrclib /get, lrclib /search.
 function M.fetchLyrics(track, callback)
   if track == nil or track.title == nil or track.title == "" then
     callback(nil, nil)
@@ -352,16 +364,19 @@ function M.fetchLyrics(track, callback)
     return
   end
 
-  local function deliver(lines, source)
-    cachePut(cacheKey, lines, source)
-    callback(lines, source)
+  local function deliver(lines, source, status)
+    -- never cache "unreachable": a transient network failure must not stick.
+    if status ~= "unreachable" then
+      cachePut(cacheKey, lines, source)
+    end
+    callback(lines, source, status)
   end
 
-  local function finish(lines, source, raw)
+  local function finish(lines, source, raw, status)
     if lines ~= nil and raw ~= nil then
       writeDiskCache(track, raw)
     end
-    deliver(lines, source)
+    deliver(lines, source, status)
   end
 
   local localRaw = readLocalLyrics(track)
@@ -402,12 +417,17 @@ function M.fetchLyrics(track, callback)
         return
       end
     end
+    if transportFailed(res) then
+      -- the search request would fail the same way, so don't bother.
+      finish(nil, nil, nil, "unreachable")
+      return
+    end
     -- No exact match (404) or an exact match with no lyrics on file: a fuzzy
     -- search still turns up the right song often enough to be worth trying.
     searchFallback(track, finish)
   end)
   if not started then
-    finish(nil, nil)
+    finish(nil, nil, nil, "unreachable")
   end
 end
 

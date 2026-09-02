@@ -56,6 +56,7 @@ local lyricsFetchToken = 0
 local lyricsLoading = false
 local lyricsLines = nil
 local lyricsSource = nil
+local lyricsStatus = nil -- nil | "unreachable"
 
 -- ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -113,13 +114,13 @@ local function fetchLyricsForCurrent()
   end
   lyricsFetchToken = lyricsFetchToken + 1
   local token = lyricsFetchToken
-  lyricsLoading, lyricsLines, lyricsSource = true, nil, nil
+  lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = true, nil, nil, nil
   render()
-  lyrics.fetchLyrics(current, function(lines, source)
+  lyrics.fetchLyrics(current, function(lines, source, status)
     if token ~= lyricsFetchToken then
       return
     end
-    lyricsLoading, lyricsLines, lyricsSource = false, lines, source
+    lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = false, lines, source, status
     render()
   end)
 end
@@ -170,7 +171,7 @@ local function refreshMetadata()
 
     if result.exitCode ~= 0 then
       current, positionUs = nil, 0
-      lyricsKey, lyricsLoading, lyricsLines, lyricsSource = "", false, nil, nil
+      lyricsKey, lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = "", false, nil, nil, nil
       render()
       return
     end
@@ -194,7 +195,7 @@ local function refreshMetadata()
     local chosen = pick(rows)
     if chosen == nil then
       current, positionUs = nil, 0
-      lyricsKey, lyricsLoading, lyricsLines, lyricsSource = "", false, nil, nil
+      lyricsKey, lyricsLoading, lyricsLines, lyricsSource, lyricsStatus = "", false, nil, nil, nil
       render()
       return
     end
@@ -261,7 +262,11 @@ function render()
   if lyricsLoading then
     body[#body + 1] = emptyState("clock", noctalia.tr("ui.lyrics_loading"))
   elseif lyricsLines == nil then
-    body[#body + 1] = emptyState("music-off", noctalia.tr("ui.lyrics_not_found"))
+    if lyricsStatus == "unreachable" then
+      body[#body + 1] = emptyState("music-off", noctalia.tr("ui.lyrics_unreachable"))
+    else
+      body[#body + 1] = emptyState("music-off", noctalia.tr("ui.lyrics_not_found"))
+    end
   elseif lyricsSource == "synced" then
     -- Karaoke window: VISIBLE_LINES lines centred on the current one, kept full
     -- near the start and end of the song so the view height doesn't jump.
