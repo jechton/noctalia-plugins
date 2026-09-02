@@ -2,21 +2,19 @@
 -- Shared synced-lyrics logic for jechton/phone-media: LRC parsing (metadata
 -- filtering, `[offset:]`, the odd `[mm:ss:xx]` / `[mm:ss-xx]` timestamp forms,
 -- partly-synced files), active-line lookup, and fetching from lrclib.net (free,
--- no API key, matches by title/artist/album/duration). Used by lyrics_bar.luau,
--- lyrics_panel.luau, and the lyrics section embedded in panel.luau, so all three
--- agree on what counts as a match and how a timestamp maps to a line. Needs
--- plugin_api >= 22, where require() arrived. The parser has a runnable check at
--- tests/lyrics_selftest.luau.
+-- no API key, matches by title/artist/album/duration). service.luau is the only
+-- entry that fetches; the UI entries parse lines the service already published.
+-- Needs plugin_api >= 22, where require() arrived. The parser has a runnable
+-- check at tests/lyrics_selftest.luau.
 
 local M = {}
 
 local BASE_URL = "https://lrclib.net/api"
 local HEADERS = { "User-Agent: noctalia-phone-media-plugin (https://github.com/jechton/nixos)" }
 
--- Per-VM result cache, keyed by trackKey. Each consumer (bar widget, popup,
--- lyrics panel) runs its own Luau VM so they cannot share this, but it still
--- spares a network round trip every time playback returns to a recent track,
--- including the empty result for a track with no lyrics on file.
+-- In-memory result cache in the service VM, keyed by trackKey: spares a disk
+-- read (and the empty-result bookkeeping) when playback returns to a recent
+-- track. The on-disk cache below is the cross-restart, cross-VM one.
 local CACHE_MAX = 24
 local cache = {} -- key -> { lines = <array|false>, source = <string|false> }
 local cacheOrder = {} -- keys, oldest first

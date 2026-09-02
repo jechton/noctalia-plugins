@@ -11,14 +11,17 @@ controls, plus:
   lyrics bar widget and full-lyrics popup
 
 The builtin media widget is compiled with no scroll hook and the plugin API
-exposes no MPRIS state, so player data comes from polling `playerctl`.
+exposes no MPRIS state, so player data comes from polling `playerctl`. A single
+headless `service` entry does that polling and the lyrics lookup once, and
+publishes snapshots through `noctalia.state`; every widget and panel is a thin
+consumer that renders the snapshot and sends commands back.
 
 ## Plugin
 
 | Field | Value |
 | --- | --- |
 | ID | `jechton/phone-media` |
-| Entries | Bar widgets: `bar`, `lyrics_bar`; panels: `panel`, `lyrics` |
+| Entries | Service: `service`; bar widgets: `bar`, `lyrics_bar`; panels: `panel`, `lyrics` |
 
 ## Requirements
 
@@ -70,9 +73,10 @@ Each widget and panel carries its own knobs, grouped in Settings:
 
 ## Notes
 
-- Spawns `playerctl` roughly once a second (metadata), plus one `playerctl
-  position` a second while a progress bar is shown; the bar advances locally
-  between polls.
+- The `service` entry spawns `playerctl` roughly once a second (metadata) plus
+  one `playerctl position` twice a second, regardless of how many widgets/panels
+  are added; the widgets interpolate position between publishes. Lyrics are only
+  fetched while a widget/panel showing lyrics is active (a `pm.want` heartbeat).
 - KDE Connect leaves an idle MPRIS player on the bus per phone app; player
   selection prefers a *playing* KDE Connect player, then any playing player,
   then any player with real track metadata. Uses `playerInstance` (unique per

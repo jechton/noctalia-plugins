@@ -39,7 +39,7 @@ default = true
 # files, checked before the cache and the network. Empty disables it.
 [[setting]]
 key = "local_lyrics_dir"
-type = "string"
+type = "folder"
 label_key = "settings.local_lyrics_dir.label"
 description_key = "settings.local_lyrics_dir.description"
 default = ""

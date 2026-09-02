@@ -70,6 +70,8 @@ local now = {
 local lyricsState = { trackKey = "", status = "idle", source = nil, lines = nil }
 local lyricsFetchToken = 0
 local lyricsFetchedKey = "" -- trackKey we last kicked a fetch for
+local lyricsFetchedAtMs = 0
+local UNREACHABLE_RETRY_MS = 15000
 
 -- ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -124,7 +126,13 @@ end
 local function publishNow()
   now.rev = now.rev + 1
   now.pinned = pinnedName
-  noctalia.state.set("pm.now", now)
+  -- publish a fresh table each time: state.watch fires on value change, and
+  -- re-setting the same table reference may not count as one.
+  local copy = {}
+  for k, v in pairs(now) do
+    copy[k] = v
+  end
+  noctalia.state.set("pm.now", copy)
 end
 
 local function publishLyrics()
@@ -162,6 +170,7 @@ local function fetchLyricsFor(track, key)
   lyricsFetchToken = lyricsFetchToken + 1
   local token = lyricsFetchToken
   lyricsFetchedKey = key
+  lyricsFetchedAtMs = noctalia.nowMs()
   lyricsState = { trackKey = key, status = "loading", source = nil, lines = nil }
   publishLyrics()
   lyrics.fetchLyrics(track, function(lines, source, status)
@@ -183,8 +192,16 @@ local function maybeFetchLyrics()
   if not now.hasPlayer or now.trackKey == "" or now.title == "" then
     return
   end
-  if lyricsFetchedKey == now.trackKey or not wantsLyrics() then
+  if not wantsLyrics() then
     return
+  end
+  if lyricsFetchedKey == now.trackKey then
+    -- retry a network failure after a while; anything else is settled.
+    local settled = lyricsState.status ~= "unreachable"
+      or (noctalia.nowMs() - lyricsFetchedAtMs) < UNREACHABLE_RETRY_MS
+    if settled then
+      return
+    end
   end
   fetchLyricsFor({
     title = now.title,
