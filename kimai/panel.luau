@@ -26,6 +26,13 @@ local activityList = {} -- array of Kimai activity entities
 local pendingLoads = 0
 local busy = false
 
+-- nowMs() the current load sequence started, or nil once it settled. A request
+-- issued just before a suspend never calls back after resume, which would
+-- otherwise leave pendingLoads stuck above zero and the panel wedged on
+-- "loading" forever; update() gives up on it after LOAD_TIMEOUT_MS.
+local loadStartedMs = nil
+local LOAD_TIMEOUT_MS = 20000
+
 -- Sum of every finished entry that began this week (Sunday 00:00 local). The
 -- running entry is excluded here and added live at render time, since Kimai does
 -- not count it.
@@ -208,6 +215,7 @@ end
 
 local function loadActive(afterMutation)
   kimai.active(function(ok, data, _status, err)
+    loadStartedMs = nil
     if not isOpen then
       return
     end
@@ -228,6 +236,7 @@ local function loadActive(afterMutation)
 end
 
 local function loadLists()
+  loadStartedMs = noctalia.nowMs()
   pendingLoads = 2
   local function done()
     pendingLoads = pendingLoads - 1
@@ -550,7 +559,16 @@ function onClose()
 end
 
 function update()
-  if isOpen and phase == "running" then
+  if not isOpen then
+    return
+  end
+  if loadStartedMs ~= nil and noctalia.nowMs() - loadStartedMs > LOAD_TIMEOUT_MS then
+    loadStartedMs, pendingLoads = nil, 0
+    phase, errorMessage = "error", noctalia.tr("errors.network")
+    render()
+    return
+  end
+  if phase == "running" then
     render() -- tick the elapsed label
   end
 end

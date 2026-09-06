@@ -18,7 +18,7 @@ local META_INTERVAL_MS = 600000
 local running = nil
 local projects = {}
 local activities = {}
-local activeInFlight = false
+local activeStartedMs = nil -- non-nil while a kimai.active request is outstanding
 local metaAtMs = 0
 local tick = 0
 
@@ -101,12 +101,15 @@ local function refreshMeta()
 end
 
 local function refreshActive()
-  if activeInFlight then
+  -- Drop the guard if a prior request has been outstanding far longer than a
+  -- poll cycle: after a suspend/resume the HTTP callback can be left hanging on
+  -- a dead socket, and noctalia.http has no timeout to bound it.
+  if activeStartedMs ~= nil and noctalia.nowMs() - activeStartedMs < POLL_TICKS * 4000 then
     return
   end
-  activeInFlight = true
+  activeStartedMs = noctalia.nowMs()
   kimai.active(function(ok, data)
-    activeInFlight = false
+    activeStartedMs = nil
     if not ok then
       return
     end
