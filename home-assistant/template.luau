@@ -12,10 +12,15 @@ local ha = require("./ha.luau")
 local FONT = noctalia.string.trim(noctalia.getConfig("font_family") or "")
 local DASHBOARD_PATH = noctalia.string.trim(noctalia.getConfig("dashboard_path") or "")
 
+-- How long to treat "never connected" as still-booting rather than a real
+-- error, so waking up before the network is online doesn't flash red.
+local BOOT_GRACE_SECONDS = 30
+
 local template = nil
 local lastText = ""
 local inFlight = false
 local tick = 0
+local connected = false
 
 local function emit(node)
   local container = barWidget.isVertical() and ui.column or ui.row
@@ -39,12 +44,15 @@ local function refresh()
   common.fetch(template, function(ok, raw, err)
     inFlight = false
     if not ok then
-      if lastText == "" then
+      if not connected and tick <= BOOT_GRACE_SECONDS then
+        render(noctalia.tr("state.loading"), false)
+      elseif lastText == "" then
         render(noctalia.tr("widget.error"), true)
       end
       barWidget.setTooltip(err or noctalia.tr("errors.network"))
       return
     end
+    connected = true
     local text = common.oneLine(raw)
     lastText = text
     render(text ~= "" and text or noctalia.tr("widget.empty"), false)

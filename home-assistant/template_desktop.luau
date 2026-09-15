@@ -15,6 +15,10 @@ local ha = require("./ha.luau")
 
 local DASHBOARD_PATH = noctalia.string.trim(noctalia.getConfig("dashboard_path") or "")
 
+-- How long to treat "never connected" as still-booting rather than a real
+-- error, so waking up before the network is online doesn't flash red.
+local BOOT_GRACE_SECONDS = 30
+
 local JUSTIFY = { left = "start", center = "center", right = "end" }
 
 local template = nil
@@ -23,6 +27,7 @@ local status = "loading" -- "loading" | "ok" | "error" | "no_template"
 local message = ""
 local inFlight = false
 local tick = 0
+local connected = false
 
 local function num(key, default)
   return tonumber(noctalia.getConfig(key)) or default
@@ -145,10 +150,15 @@ local function refresh()
   common.fetch(template, function(ok, raw, err)
     inFlight = false
     if not ok then
-      status, message = "error", err or noctalia.tr("errors.network")
+      if not connected and tick <= BOOT_GRACE_SECONDS then
+        status = "loading"
+      else
+        status, message = "error", err or noctalia.tr("errors.network")
+      end
       render()
       return
     end
+    connected = true
     lines = common.lines(raw)
     status = "ok"
     render()
