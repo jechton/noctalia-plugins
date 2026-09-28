@@ -25,7 +25,7 @@ local template = nil
 local lines = {}
 local status = "loading" -- "loading" | "ok" | "error" | "no_template"
 local message = ""
-local inFlight = false
+local fetchStartedMs = nil -- non-nil while a render request is outstanding
 local tick = 0
 local connected = false
 
@@ -143,12 +143,18 @@ function openDashboard()
 end
 
 local function refresh()
-  if inFlight or template == nil then
+  -- Drop the guard if a prior request has been outstanding far longer than a
+  -- poll cycle: after a suspend/resume the HTTP callback can be left hanging on
+  -- a dead socket, and noctalia.http has no timeout to bound it.
+  if template == nil then
     return
   end
-  inFlight = true
+  if fetchStartedMs ~= nil and noctalia.nowMs() - fetchStartedMs < common.pollTicks() * 4000 then
+    return
+  end
+  fetchStartedMs = noctalia.nowMs()
   common.fetch(template, function(ok, raw, err)
-    inFlight = false
+    fetchStartedMs = nil
     if not ok then
       if not connected and tick <= BOOT_GRACE_SECONDS then
         status = "loading"
