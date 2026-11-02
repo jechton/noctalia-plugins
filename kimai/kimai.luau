@@ -254,12 +254,17 @@ function M.formatClock(unixSeconds)
   return (noctalia.formatTime("%I:%M %p", unixSeconds):gsub("^0(%d)", "%1"))
 end
 
--- Parse "2:47 PM", "2:47pm", "14:47" (no suffix means 24-hour) to (hour24,
+-- Parse "2:47 PM", "2:47pm", "247pm", "2pm", "14:47" (no suffix means 24-hour) to (hour24,
 -- minute). nil when it does not parse or is out of range.
 function M.parseClock(text)
-  local h, m, suffix = noctalia.string.trim(text or ""):lower():match("^(%d%d?):(%d%d)%s*(%a*)$")
-  if h == nil then
+  local digits, suffix = noctalia.string.trim(text or ""):lower():gsub(":", ""):match("^(%d+)%s*(%a*)$")
+  if digits == nil or #digits > 4 then
     return nil
+  end
+  -- Last two digits are minutes when there are 3-4 of them, else all hour.
+  local h, m = digits, "0"
+  if #digits > 2 then
+    h, m = digits:sub(1, -3), digits:sub(-2)
   end
   h, m = tonumber(h), tonumber(m)
   if m > 59 then

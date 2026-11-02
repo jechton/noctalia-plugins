@@ -41,7 +41,7 @@
     "not_configured": "Set the Kimai URL and API token in plugin settings.",
     "network": "Could not reach Kimai.",
     "blocked": "Request blocked (offline mode?).",
-    "bad_time": "Start time must look like 2:47 PM or 14:47.",
+    "bad_time": "Start time must look like 2:47 PM, 247pm or 14:47.",
     "pick_project": "Pick a project and an activity first."
   },
   "settings": {
