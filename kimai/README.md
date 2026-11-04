@@ -48,7 +48,8 @@ noctalia msg panel-toggle jechton/kimai:panel
 
 - **Running**: elapsed time, editable project / activity / description / start
   time, **Save** (PATCH) and **Stop**.
-- **Idle**: project, activity, and description pickers, then **Start**.
+- **Idle**: project, activity, and description pickers, an optional start time
+  (blank = now, today), then **Start**.
 
 Both modes show a **This week** total: the sum of every entry begun since the
 most recent Sunday 00:00 (local), including the running timer, which Kimai's own

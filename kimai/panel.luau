@@ -324,10 +324,19 @@ function onStart()
     noctalia.notifyError(noctalia.tr("title"), noctalia.tr("errors.pick_project"))
     return
   end
+  local begin = kimai.nowDateTime()
+  if noctalia.string.trim(draft.beginTime) ~= "" then
+    local hh, mm = kimai.parseClock(draft.beginTime)
+    if hh == nil then
+      noctalia.notifyError(noctalia.tr("title"), noctalia.tr("errors.bad_time"))
+      return
+    end
+    begin = string.format("%sT%02d:%02d:00", begin:sub(1, 10), hh, mm)
+  end
   busy = true
   render()
   kimai.start({
-    ["begin"] = kimai.nowDateTime(),
+    ["begin"] = begin,
     project = tonumber(draft.projectId),
     activity = tonumber(draft.activityId),
     description = draft.description,
@@ -452,6 +461,19 @@ local function descriptionInput()
   })
 end
 
+local function beginInput(placeholderKey, submit)
+  return ui.column({ gap = 2, align = "stretch" }, {
+    ui.label({ text = noctalia.tr("field.begin"), fontSize = 11, color = "on_surface_variant" }),
+    ui.input({
+      key = "begin-" .. tostring(inputRevision),
+      value = draft.beginTime,
+      placeholder = noctalia.tr(placeholderKey),
+      onChange = "onBeginChange",
+      onSubmit = submit,
+    }),
+  })
+end
+
 local function runningBody()
   local elapsed = kimai.hhmm(kimai.elapsedSeconds(running))
   return {
@@ -461,16 +483,7 @@ local function runningBody()
     projectSelect(),
     activitySelect(),
     descriptionInput(),
-    ui.column({ gap = 2, align = "stretch" }, {
-      ui.label({ text = noctalia.tr("field.begin"), fontSize = 11, color = "on_surface_variant" }),
-      ui.input({
-        key = "begin-" .. tostring(inputRevision),
-        value = draft.beginTime,
-        placeholder = noctalia.tr("field.begin_placeholder"),
-        onChange = "onBeginChange",
-        onSubmit = "onSave",
-      }),
-    }),
+    beginInput("field.begin_placeholder", "onSave"),
     ui.row({ justify = "space_between", gap = 8 }, {
       ui.button({
         text = noctalia.tr("action.save"),
@@ -496,6 +509,7 @@ local function idleBody()
     projectSelect(),
     activitySelect(),
     descriptionInput(),
+    beginInput("field.begin_idle_placeholder", "onStart"),
     ui.row({ justify = "center" }, {
       ui.button({
         text = noctalia.tr("action.start"),
