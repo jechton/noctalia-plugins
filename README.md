@@ -7,6 +7,7 @@ Personal [Noctalia](https://github.com/noctalia-dev/noctalia-shell) plugins.
 | [home-assistant](home-assistant/) | `jechton/home-assistant` | Bar and desktop widgets that render a Home Assistant Jinja template via the `/api/template` endpoint. |
 | [kimai](kimai/) | `jechton/kimai` | Bar widget and panel for a self-hosted Kimai instance: track the running time entry, and start/stop/edit it. |
 | [phone-media](phone-media/) | `jechton/phone-media` | Now-playing bar widget and popup replacing the builtins, to function better with KDE connect. Scrolling over the widget changes phone volume. Also includes lyrics in the popup, and a lyrics bar and popup. |
+| [tailscale](tailscale/) | `jechton/tailscale` | Bar widget and panel for Tailscale: connect or disconnect, and switch between accounts. |
 | [tenpo-ko](tenpo-ko/) | `jechton/tenpo-ko` | Bar widget showing tenpo ko (elemental time): the UTC day split into four six-hour blocks. |
 
 ## Using these

@@ -1,0 +1,38 @@
+id = "jechton/tailscale"
+name = "Tailscale"
+version = "1.0.0"
+plugin_api = 24
+author = "jechton"
+license = "MIT"
+
+icon = "world"
+
+description = "Bar widget and panel for Tailscale: connect or disconnect, and switch between accounts."
+
+tags = ["bar", "network", "vpn", "tailscale"]
+
+[[setting]]
+key = "poll_seconds"
+type = "int"
+label_key = "settings.poll_seconds.label"
+description_key = "settings.poll_seconds.description"
+default = 5
+min = 2
+max = 60
+advanced = true
+
+[[widget]]
+id = "bar"
+entry = "bar.luau"
+
+[widget.actions]
+left = "panel-toggle jechton/tailscale:panel"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 320
+height = 360
+placement = "attached"
+position = "auto"
+open_near_click = true

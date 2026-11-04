@@ -1,0 +1,36 @@
+{
+  "plugin_name": "Tailscale",
+  "plugin_description": "Bar widget and panel for Tailscale: connect or disconnect, and switch between accounts.",
+  "title": "Tailscale",
+  "state": {
+    "loading": "Loading…",
+    "running": "Connected",
+    "stopped": "Disconnected",
+    "needs_login": "Login required",
+    "starting": "Connecting…"
+  },
+  "action": {
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "retry": "Retry"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "empty": "No accounts found"
+  },
+  "tooltip": {
+    "unavailable": "Tailscale: not available",
+    "tailnet": "Tailnet"
+  },
+  "errors": {
+    "missing_cli": "The tailscale command was not found",
+    "operator": "Run once: sudo tailscale set --operator=$USER",
+    "failed": "tailscale failed: {message}"
+  },
+  "settings": {
+    "poll_seconds": {
+      "label": "Poll interval",
+      "description": "Seconds between status checks."
+    }
+  }
+}
