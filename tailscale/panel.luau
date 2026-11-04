@@ -10,7 +10,9 @@ local isOpen = false
 local status = nil
 local accounts = {}
 local busy = false
-local errorMessage = nil
+-- One slot per source so a successful refresh clears only its own error.
+local statusError, accountsError, actionError = nil, nil, nil
+local TAILNET_FIRST = noctalia.getConfig("account_label") == "tailnet"
 local tick = 0
 
 local STATE_KEY = {
@@ -26,15 +28,24 @@ local function render()
 
   local rows = {}
   for _, account in ipairs(accounts) do
-    rows[#rows + 1] = ui.button({
+    local main = TAILNET_FIRST and account.tailnet or account.account
+    local sub = TAILNET_FIRST and account.account or account.tailnet
+    local color = account.active and "primary" or "on_surface"
+    rows[#rows + 1] = ui.row({
       key = account.id,
-      text = account.account .. "  " .. account.tailnet,
-      glyph = account.active and "check" or nil,
-      variant = account.active and "primary" or "ghost",
-      enabled = not busy and not account.active,
+      align = "center",
+      gap = 8,
       onClick = function()
-        onSwitch(account.id)
+        if not busy and not account.active then
+          onSwitch(account.id)
+        end
       end,
+    }, {
+      ui.glyph({ name = account.active and "check" or "user", size = 16, color = color }),
+      ui.column({ flexGrow = 1, gap = 2 }, {
+        ui.label({ text = main, maxLines = 1, color = color }),
+        ui.label({ text = sub, maxLines = 1, fontSize = 11, color = "on_surface_variant" }),
+      }),
     })
   end
   if #rows == 0 then
@@ -56,6 +67,7 @@ local function render()
       }),
     }),
   }
+  local errorMessage = actionError or statusError or accountsError
   if errorMessage ~= nil then
     body[#body + 1] = ui.label({ text = errorMessage, color = "error", maxLines = 3 })
   end
@@ -68,21 +80,13 @@ end
 
 local function refresh()
   ts.status(function(ok, parsed)
-    if ok then
-      status = parsed
-    else
-      status = nil
-      errorMessage = ts.errorMessage(parsed)
-    end
+    status = ok and parsed or nil
+    statusError = (not ok) and ts.errorMessage(parsed) or nil
     render()
   end)
   ts.accounts(function(ok, parsed)
-    if ok then
-      accounts = parsed
-    else
-      accounts = {}
-      errorMessage = ts.errorMessage(parsed)
-    end
+    accounts = ok and parsed or {}
+    accountsError = (not ok) and ts.errorMessage(parsed) or nil
     render()
   end)
 end
@@ -90,21 +94,21 @@ end
 -- Runs a mutating command, then refreshes the panel and the bar.
 local function afterAction(ok, result)
   busy = false
-  errorMessage = ok and nil or ts.errorMessage(result)
+  actionError = (not ok) and ts.errorMessage(result) or nil
   noctalia.runAsync({ "noctalia", "msg", "plugin", "jechton/tailscale:bar", "all", "refresh" })
   refresh()
 end
 
 function onSwitch(id)
   busy = true
-  errorMessage = nil
+  actionError = nil
   render()
   ts.switchTo(id, afterAction)
 end
 
 function onToggle()
   busy = true
-  errorMessage = nil
+  actionError = nil
   render()
   ts.setConnected(not (status ~= nil and status.state == "Running"), afterAction)
 end

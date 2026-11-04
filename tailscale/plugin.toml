@@ -36,3 +36,14 @@ height = 360
 placement = "attached"
 position = "auto"
 open_near_click = true
+
+[[panel.setting]]
+key = "account_label"
+type = "select"
+label_key = "settings.account_label.label"
+description_key = "settings.account_label.description"
+default = "account"
+options = [
+  { value = "account", label_key = "settings.account_label.account" },
+  { value = "tailnet", label_key = "settings.account_label.tailnet" },
+]

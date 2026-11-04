@@ -28,6 +28,12 @@
     "failed": "tailscale failed: {message}"
   },
   "settings": {
+    "account_label": {
+      "label": "Account label",
+      "description": "Which name is the main label on each account row. The other shows below it.",
+      "account": "Account (email)",
+      "tailnet": "Tailnet"
+    },
     "poll_seconds": {
       "label": "Poll interval",
       "description": "Seconds between status checks."
