@@ -286,13 +286,12 @@ function onSave()
     patch.activity = tonumber(draft.activityId)
   end
   if draft.beginTime ~= baseline.beginTime then
-    local hh, mm = kimai.parseClock(draft.beginTime)
-    local date = kimai.beginDate(running)
-    if hh == nil or date == nil then
+    local begin = kimai.resolveBegin(draft.beginTime, kimai.beginDate(running))
+    if begin == nil then
       noctalia.notifyError(noctalia.tr("title"), noctalia.tr("errors.bad_time"))
       return
     end
-    patch["begin"] = string.format("%sT%02d:%02d:00", date, hh, mm)
+    patch["begin"] = begin
   end
 
   if next(patch) == nil then
@@ -326,12 +325,11 @@ function onStart()
   end
   local begin = kimai.nowDateTime()
   if noctalia.string.trim(draft.beginTime) ~= "" then
-    local hh, mm = kimai.parseClock(draft.beginTime)
-    if hh == nil then
+    begin = kimai.resolveBegin(draft.beginTime, begin:sub(1, 10))
+    if begin == nil then
       noctalia.notifyError(noctalia.tr("title"), noctalia.tr("errors.bad_time"))
       return
     end
-    begin = string.format("%sT%02d:%02d:00", begin:sub(1, 10), hh, mm)
   end
   busy = true
   render()

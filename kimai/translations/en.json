@@ -16,8 +16,8 @@
     "description": "Description",
     "description_placeholder": "What are you working on?",
     "begin": "Started at",
-    "begin_placeholder": "e.g. 2:47 PM",
-    "begin_idle_placeholder": "Now, or e.g. 1 PM"
+    "begin_placeholder": "e.g. 2:47 PM or 15m ago",
+    "begin_idle_placeholder": "Now, or e.g. 1 PM, 15m ago"
   },
   "action": {
     "start": "Start",

@@ -294,6 +294,48 @@ function M.parseClock(text)
   return h, m
 end
 
+local HOUR_UNITS = { h = true, hr = true, hrs = true, hour = true, hours = true }
+local MINUTE_UNITS = { m = true, min = true, mins = true, minute = true, minutes = true }
+
+-- Parse "-15m", "15m ago", "15 min ago", "-1h30m", "1h ago" to seconds back from
+-- now. nil when it does not parse.
+function M.parseRelative(text)
+  local s = noctalia.string.trim(text or ""):lower()
+  s = s:gsub("^%-%s*", "")
+  s = s:gsub("%s*ago$", "")
+  local total, pos = 0, 1
+  while pos <= #s do
+    local n, unit, nextPos = s:match("^(%d+)%s*(%a+)%s*()", pos)
+    if n == nil then
+      return nil
+    end
+    if HOUR_UNITS[unit] then
+      total += (tonumber(n) or 0) * 3600
+    elseif MINUTE_UNITS[unit] then
+      total += (tonumber(n) or 0) * 60
+    else
+      return nil
+    end
+    pos = nextPos
+  end
+  return pos > 1 and total or nil
+end
+
+-- Local "YYYY-MM-DDTHH:MM:SS" for a typed start time: relative ("15m ago") counts
+-- back from now, a clock time ("1 PM") lands on `date` ("YYYY-MM-DD"). nil when it
+-- does not parse.
+function M.resolveBegin(text, date)
+  local back = M.parseRelative(text)
+  if back ~= nil then
+    return noctalia.formatTime("%Y-%m-%dT%H:%M:00", math.floor(noctalia.nowMs() / 1000 - back))
+  end
+  local hh, mm = M.parseClock(text)
+  if hh == nil or date == nil then
+    return nil
+  end
+  return string.format("%sT%02d:%02d:00", date, hh, mm)
+end
+
 -- Elapsed seconds for a timesheet. Kimai reports duration = 0 for a running
 -- entry (end == nil) until it is stopped, so that case is computed live from
 -- begin instead.

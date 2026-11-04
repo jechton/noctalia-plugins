@@ -56,7 +56,7 @@ most recent Sunday 00:00 (local), including the running timer, which Kimai's own
 totals leave out. It ticks up live while a timer runs.
 
 Activities offered are the selected project's own plus any global activities.
-The start-time field edits only the time of day; the date stays as recorded.
+The start-time field takes a clock time (`2:47 PM`, `1pm`, `14:47`; date stays as recorded) or a relative one (`-15m`, `15m ago`, `15 min ago`, `-1h30m`, `1h ago`; counted back from now, so it can change the date).
 
 The idle form defaults to the project / activity / description of your most
 recent timesheet on the server, falling back to the first project.
