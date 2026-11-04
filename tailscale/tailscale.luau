@@ -35,6 +35,18 @@ function M.parseAccounts(text)
   return accounts
 end
 
+-- The account after the active one, wrapping around; nil when there is nothing
+-- to switch to.
+function M.nextAccount(accounts)
+  for i, account in ipairs(accounts) do
+    if account.active then
+      local next = accounts[i % #accounts + 1]
+      return next ~= account and next or nil
+    end
+  end
+  return accounts[1]
+end
+
 -- Maps a failed CommandResult to a translation key, or a raw message.
 function M.errorMessage(result)
   local err = result.stderr ~= "" and result.stderr or result.stdout

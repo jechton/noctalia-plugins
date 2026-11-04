@@ -30,6 +30,11 @@ check("active row", accounts[2].active == true)
 check("star stripped", accounts[2].tailnet == "other.ts.net" and accounts[2].account == "other@x.com")
 check("empty output", #ts.parseAccounts("") == 0)
 
+check("next wraps to first", ts.nextAccount(accounts).id == "7cd6")
+check("next picks following", ts.nextAccount({ { id = "a", active = true }, { id = "b", active = false } }).id == "b")
+check("no next with one account", ts.nextAccount({ { id = "a", active = true } }) == nil)
+check("no next when empty", ts.nextAccount({}) == nil)
+
 local status = ts.parseStatus({ BackendState = "Running", CurrentTailnet = { Name = "example.com" } })
 check("status state", status.state == "Running")
 check("status tailnet", status.tailnet == "example.com")

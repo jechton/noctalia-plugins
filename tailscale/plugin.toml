@@ -37,7 +37,7 @@ placement = "attached"
 position = "auto"
 open_near_click = true
 
-[[panel.setting]]
+[[setting]]
 key = "account_label"
 type = "select"
 label_key = "settings.account_label.label"
@@ -47,3 +47,9 @@ options = [
   { value = "account", label_key = "settings.account_label.account" },
   { value = "tailnet", label_key = "settings.account_label.tailnet" },
 ]
+
+# Control Center tile: click cycles to the next account, right-click opens the
+# panel.
+[[shortcut]]
+id = "switch"
+entry = "shortcut.luau"
